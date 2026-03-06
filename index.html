@@ -809,8 +809,40 @@ function actualizarBadge(){
   document.getElementById('badge-total').textContent=n+(n===1?' persona':' personas');
 }
 
+// ── SYNC SILENCIOSO (refresca sin recargar página) ───────────────────────
+async function syncDesdeDB(){
+  if(saving) return; // no sincronizar mientras se está guardando
+  try{
+    const tabActiva=document.querySelector('.section.active')?.id?.replace('sec-','');
+    const {data:jData}  = await sb.from('jugadores').select('*').order('apellido');
+    const {data:pData}  = await sb.from('pagos').select('*');
+    const {data:hData}  = await sb.from('habitaciones').select('*').order('id');
+    const {data:ocData} = await sb.from('hab_ocupantes').select('*');
+    if(!jData) return;
+    jugadores    = jData.map(j=>({...j,docs:{dni:j.doc_dni,titulo:j.doc_titulo}}));
+    pagos        = pData||[];
+    habitaciones = (hData||[]).map(h=>({...h,ocupantes:(ocData||[]).filter(o=>o.habitacion_id===h.id).map(o=>o.jugador_id)}));
+    actualizarBadge();
+    if(tabActiva==='resumen')      renderResumen();
+    if(tabActiva==='jugadores')    renderJugadores();
+    if(tabActiva==='pagos')        renderPagos(filtroActivo);
+    if(tabActiva==='viaje')        renderViaje();
+    if(tabActiva==='habitaciones') renderHabitaciones();
+    if(tabActiva==='buenafe')      renderBuenaFe();
+    setSyncing('ok');
+  }catch(e){ setSyncing('err'); }
+}
+
 // ── ARRANCAR ──────────────────────────────────────────────────────────────
 init();
+
+// Refresca cada 8 segundos
+setInterval(syncDesdeDB, 8000);
+
+// Refresca cuando volvés a la pestaña (celu ↔ compu)
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible') syncDesdeDB();
+});
 </script>
 </body>
 </html>
