@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Viaje Catarmarca 2026</title>
+  <title>Viaje Catamarca 2026</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -330,6 +330,45 @@ const EST_VIA = ['debe','parcial','pagado','noaplica'];
 const LABELS  = {debe:'Debe',parcial:'Parcial',pagado:'Pagado',noaplica:'Por su cuenta'};
 const TLABELS = {inscripcion:'Inscripción',hotel:'Hotel',viaje:'Transporte'};
 
+const ROLES = { jugador:'jugador', comitiva:'comitiva' };
+
+function esJugador(j){ return (j?.rol || 'jugador') === ROLES.jugador; }
+function esComitiva(j){ return (j?.rol || 'jugador') === ROLES.comitiva; }
+function soloJugadores(){ return jugadores.filter(esJugador); }
+function soloComitiva(){ return jugadores.filter(esComitiva); }
+function personasHabitables(){ return jugadores; } // jugadores + comitiva
+function fmtFecha(fecha){
+  return fecha ? new Date(fecha+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+}
+function fmtTomoFolio(j){
+  return j.tomo ? (j.folio ? `T° ${j.tomo} - F° ${j.folio}` : j.tomo) : '—';
+}
+function paymentState(jId,tipo){
+  return pagos.find(p=>p.jugador_id===jId && p.tipo===tipo)?.estado || 'debe';
+}
+async function upsertPagoEstado(jId,tipo,estado){
+  const existente = pagos.find(p=>p.jugador_id===jId && p.tipo===tipo);
+  if(existente){
+    const {error} = await sb.from('pagos').update({estado}).eq('jugador_id',jId).eq('tipo',tipo);
+    if(error) throw error;
+    existente.estado = estado;
+    return existente;
+  }
+  const {data,error} = await sb.from('pagos').insert({jugador_id:jId,tipo,estado}).select().single();
+  if(error) throw error;
+  pagos.push(data);
+  return data;
+}
+function renderVistasDerivadas(){
+  actualizarBadge();
+  renderResumen();
+  renderJugadores();
+  if(document.getElementById('sec-pagos').classList.contains('active')) renderPagos(filtroActivo);
+  if(document.getElementById('sec-viaje').classList.contains('active')) renderViaje();
+  if(document.getElementById('sec-habitaciones').classList.contains('active')) renderHabitaciones();
+  if(document.getElementById('sec-buenafe').classList.contains('active')) renderBuenaFe();
+}
+
 // ── TOAST ───────────────────────────────────────────────────────────────
 let toastTimer;
 function toast(msg, tipo='ok'){
@@ -347,15 +386,12 @@ function setSyncing(state){ // 'ok'|'syncing'|'err'
 async function init(){
   setSyncing('syncing');
   try {
-    // cargar jugadores
     const {data:jData, error:jErr} = await sb.from('jugadores').select('*').order('apellido');
     if(jErr) throw jErr;
 
-    // si no hay datos, migrar lista inicial
     if(jData.length===0){
       const {error:insErr} = await sb.from('jugadores').insert(INIT);
       if(insErr) throw insErr;
-      // insertar pagos iniciales
       const pagoRows=[];
       INIT.forEach(j=>TIPOS.forEach(t=>pagoRows.push({jugador_id:j.id,tipo:t,estado:'debe'})));
       await sb.from('pagos').insert(pagoRows);
@@ -364,12 +400,10 @@ async function init(){
       jugadores=jData.map(j=>({...j,docs:{dni:j.doc_dni,titulo:j.doc_titulo}}));
     }
 
-    // cargar pagos
     const {data:pData, error:pErr} = await sb.from('pagos').select('*');
     if(pErr) throw pErr;
     pagos=pData;
 
-    // cargar habitaciones
     const {data:hData, error:hErr} = await sb.from('habitaciones').select('*').order('id');
     if(hErr) throw hErr;
     const {data:ocData, error:ocErr} = await sb.from('hab_ocupantes').select('*');
@@ -381,10 +415,7 @@ async function init(){
 
     setSyncing('ok');
     document.getElementById('loading-screen').classList.add('hide');
-    renderJugadores();
-    renderResumen();
-    actualizarBadge();
-
+    renderVistasDerivadas();
   } catch(e){
     setSyncing('err');
     document.getElementById('loading-screen').classList.add('hide');
@@ -400,6 +431,7 @@ function switchTab(tab,el){
   el.classList.add('active');
   document.getElementById('sec-'+tab).classList.add('active');
   if(tab==='resumen')      renderResumen();
+  if(tab==='jugadores')    renderJugadores();
   if(tab==='pagos')        renderPagos(filtroActivo);
   if(tab==='viaje')        renderViaje();
   if(tab==='habitaciones') renderHabitaciones();
@@ -451,7 +483,6 @@ async function guardarJugador(){
       datos.id=Date.now();
       const {error}=await sb.from('jugadores').insert(datos);
       if(error)throw error;
-      // insertar pagos
       await sb.from('pagos').insert(TIPOS.map(t=>({jugador_id:datos.id,tipo:t,estado:'debe'})));
       jugadores.push({...datos,docs:{dni:false,titulo:false}});
       toast('Jugador agregado');
@@ -459,8 +490,7 @@ async function guardarJugador(){
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
   cerrarModal();
-  renderJugadores();
-  actualizarBadge();
+  renderVistasDerivadas();
 }
 
 async function eliminarJugador(idx){
@@ -477,8 +507,7 @@ async function eliminarJugador(idx){
     toast('Jugador eliminado');
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
-  renderJugadores();
-  actualizarBadge();
+  renderVistasDerivadas();
 }
 
 async function toggleDoc(idx,doc){
@@ -493,7 +522,7 @@ async function toggleDoc(idx,doc){
     j.docs[doc]=nuevo;
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
-  renderJugadores();
+  renderVistasDerivadas();
 }
 
 function toggleDetalle(idx){
@@ -506,10 +535,14 @@ function toggleDetalle(idx){
 // ── RENDER JUGADORES ────────────────────────────────────────────────────
 function renderJugadores(){
   const cont=document.getElementById('lista-jugadores');
-  if(!jugadores.length){cont.innerHTML='<div style="text-align:center;color:var(--suave);padding:36px 0;font-size:.86em">Sin jugadores.</div>';return}
+  if(!jugadores.length){
+    cont.innerHTML='<div style="text-align:center;color:var(--suave);padding:36px 0;font-size:.86em">Sin jugadores.</div>';
+    return;
+  }
   let html='';
-  [{label:'Jugadores',lista:jugadores.filter(j=>j.rol!=='comitiva')},
-   {label:'Comitiva', lista:jugadores.filter(j=>j.rol==='comitiva')}
+  [
+    {label:'Jugadores',lista:soloJugadores()},
+    {label:'Comitiva', lista:soloComitiva()}
   ].forEach(g=>{
     if(!g.lista.length)return;
     html+=`<div class="sec-title">${g.label} (${g.lista.length})</div>`;
@@ -521,8 +554,8 @@ function renderJugadores(){
 function cardJugador(j,i){
   const dOk=j.doc_dni,tOk=j.doc_titulo;
   const alerta=(!dOk||!tOk)?' <span style="color:var(--amarillo);font-size:.68em">⚠</span>':'';
-  const fnac=j.fnac?new Date(j.fnac+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
-  const tf=j.tomo?(j.folio?`T° ${j.tomo} - F° ${j.folio}`:j.tomo):'—';
+  const fnac=fmtFecha(j.fnac);
+  const tf=fmtTomoFolio(j);
   return `<div class="card">
     <div class="card-header">
       <div>
@@ -552,22 +585,41 @@ function cardJugador(j,i){
 
 // ── RESUMEN ─────────────────────────────────────────────────────────────
 function renderResumen(){
-  const jug=jugadores.filter(j=>j.rol!=='comitiva').length;
-  const com=jugadores.filter(j=>j.rol==='comitiva').length;
-  const docOk=jugadores.filter(j=>j.doc_dni&&j.doc_titulo).length;
+  const jugLista=soloJugadores();
+  const comLista=soloComitiva();
+
+  const jug=jugLista.length;
+  const com=comLista.length;
+  const docOk=jugLista.filter(j=>j.doc_dni&&j.doc_titulo).length;
+  const conColectivo=jugLista.filter(j=>j.transporte==='colectivo').length;
+  const porSuCuenta=jugLista.filter(j=>j.transporte==='propio').length;
+  const sinDefinir=jugLista.filter(j=>!j.transporte||j.transporte==='none').length;
+
   document.getElementById('dash-totales').innerHTML=`
     <div class="dash-card"><div class="dash-num" style="color:var(--azul)">${jug}</div><div class="dash-label">Jugadores</div></div>
     <div class="dash-card"><div class="dash-num" style="color:var(--amarillo)">${com}</div><div class="dash-label">Comitiva</div></div>
-    <div class="dash-card"><div class="dash-num" style="color:var(--verde)">${docOk}/${jugadores.length}</div><div class="dash-label">Docs OK</div></div>`;
-  let html='';
+    <div class="dash-card"><div class="dash-num" style="color:var(--verde)">${docOk}/${jug}</div><div class="dash-label">Docs OK</div></div>`;
+
+  let html=`
+    <div class="pago-bar-wrap">
+      <div class="pago-bar-header"><div class="pago-bar-label">Transporte jugadores</div></div>
+      <div class="pago-bar-sub">
+        <span>🚌 Colectivo: <b style="color:var(--verde)">${conColectivo}</b></span>
+        <span>🚗 Por su cuenta: <b style="color:var(--naranja)">${porSuCuenta}</b></span>
+        <span>❓ Sin definir: <b style="color:var(--suave)">${sinDefinir}</b></span>
+      </div>
+    </div>
+  `;
+
   TIPOS.forEach(tipo=>{
     let nP=0,nPar=0,nD=0,nNA=0,tot=0;
-    jugadores.forEach(j=>{
-      const p=pagos.find(p=>p.jugador_id===j.id&&p.tipo===tipo);
-      const e=p?.estado||'debe';
+    jugLista.forEach(j=>{
+      const e=paymentState(j.id,tipo);
       if(e==='noaplica'){nNA++;return}
       tot++;
-      if(e==='pagado')nP++;else if(e==='parcial')nPar++;else nD++;
+      if(e==='pagado')nP++;
+      else if(e==='parcial')nPar++;
+      else nD++;
     });
     const pct=tot?Math.round(nP/tot*100):0;
     html+=`<div class="pago-bar-wrap">
@@ -594,49 +646,46 @@ function filtrarPago(tipo,btn){
 
 async function cicloPago(tipo,jId){
   const estados=tipo==='viaje'?EST_VIA:EST_STD;
-  const p=pagos.find(p=>p.jugador_id===jId&&p.tipo===tipo);
-  const cur=p?.estado||'debe';
+  const cur=paymentState(jId,tipo);
   const next=estados[(estados.indexOf(cur)+1)%estados.length];
   setSyncing('syncing');
   try{
-    if(p){
-      const {error}=await sb.from('pagos').update({estado:next}).eq('jugador_id',jId).eq('tipo',tipo);
-      if(error)throw error;
-      p.estado=next;
-    }else{
-      const {data,error}=await sb.from('pagos').insert({jugador_id:jId,tipo,estado:next}).select().single();
-      if(error)throw error;
-      pagos.push(data);
-    }
-    // sincronizar transporte si es viaje
+    await upsertPagoEstado(jId,tipo,next);
+
     if(tipo==='viaje'){
       const j=jugadores.find(j=>j.id===jId);
       if(j){
-        let t=j.transporte;
-        if(next==='noaplica')t='propio';
-        else if(next==='pagado'||next==='parcial')t='colectivo';
-        else t='none';
+        let t='none';
+        if(next==='noaplica') t='propio';
+        else if(next==='pagado'||next==='parcial') t='colectivo';
+
         if(t!==j.transporte){
-          await sb.from('jugadores').update({transporte:t}).eq('id',jId);
+          const {error}=await sb.from('jugadores').update({transporte:t}).eq('id',jId);
+          if(error) throw error;
           j.transporte=t;
         }
       }
     }
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
+  renderResumen();
   renderPagos(filtroActivo);
+  renderViaje();
 }
 
 function renderPagos(filtro){
   const lista=document.getElementById('lista-pagos');
-  if(!jugadores.length){lista.innerHTML='<div style="color:var(--suave);font-size:.83em;padding:10px 0">Agregá jugadores primero.</div>';return}
+  const base=soloJugadores();
+  if(!base.length){
+    lista.innerHTML='<div style="color:var(--suave);font-size:.83em;padding:10px 0">Agregá jugadores primero.</div>';
+    return;
+  }
   const tipos=filtro==='todos'?TIPOS:[filtro];
   let html='';
   tipos.forEach(tipo=>{
     html+=`<div style="font-size:.62em;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--suave);padding:10px 0 3px;border-top:1px solid var(--borde);margin-top:2px">${TLABELS[tipo]}</div>`;
-    jugadores.forEach(j=>{
-      const p=pagos.find(p=>p.jugador_id===j.id&&p.tipo===tipo);
-      const est=p?.estado||'debe';
+    base.forEach(j=>{
+      const est=paymentState(j.id,tipo);
       html+=`<div class="pago-row">
         <div class="pago-nombre">${j.apellido}, ${j.nombre}</div>
         <div class="pago-estado ${est}" onclick="cicloPago('${tipo}',${j.id})">${LABELS[est]}</div>
@@ -652,29 +701,45 @@ async function ciclaTransporte(idx){
   const j=jugadores[idx];
   const cur=j.transporte||'none';
   const next=ciclo[(ciclo.indexOf(cur)+1)%ciclo.length];
+
+  let estadoViaje='debe';
+  if(next==='colectivo') estadoViaje='pagado';
+  if(next==='propio') estadoViaje='noaplica';
+
   setSyncing('syncing');
   try{
-    const {error}=await sb.from('jugadores').update({transporte:next}).eq('id',j.id);
-    if(error)throw error;
+    const {error:errorJugador}=await sb.from('jugadores').update({transporte:next}).eq('id',j.id);
+    if(errorJugador)throw errorJugador;
     j.transporte=next;
+
+    await upsertPagoEstado(j.id,'viaje',estadoViaje);
+
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
+
+  renderResumen();
   renderViaje();
+  if(document.getElementById('sec-pagos').classList.contains('active')) renderPagos(filtroActivo);
 }
 
 function renderViaje(){
-  const col=jugadores.filter(j=>j.transporte==='colectivo');
-  const prop=jugadores.filter(j=>j.transporte==='propio');
-  const sin=jugadores.filter(j=>!j.transporte||j.transporte==='none');
+  const base=personasHabitables();
+  const col=base.filter(j=>j.transporte==='colectivo');
+  const prop=base.filter(j=>j.transporte==='propio');
+  const sin=base.filter(j=>!j.transporte||j.transporte==='none');
+
   document.getElementById('col-count').textContent=`(${col.length})`;
   document.getElementById('propio-count').textContent=`(${prop.length})`;
   document.getElementById('sin-count').textContent=`(${sin.length})`;
+
   const itemHTML=j=>{
     const i=jugadores.indexOf(j);
     const cls=j.transporte==='colectivo'?'colectivo':j.transporte==='propio'?'propio':'none';
     const icon=j.transporte==='colectivo'?'🚌':j.transporte==='propio'?'🚗':'❓';
-    return `<div class="viaje-item"><div class="vtoggle ${cls}" onclick="ciclaTransporte(${i})">${icon}</div><span>${j.apellido}, ${j.nombre}</span></div>`;
+    const rol = esComitiva(j) ? ' <span style="color:var(--suave);font-size:.82em">· comitiva</span>' : '';
+    return `<div class="viaje-item"><div class="vtoggle ${cls}" onclick="ciclaTransporte(${i})">${icon}</div><span>${j.apellido}, ${j.nombre}${rol}</span></div>`;
   };
+
   document.getElementById('lista-colectivo').innerHTML=col.map(itemHTML).join('')||'<div class="viaje-empty">Ninguno aún.</div>';
   document.getElementById('lista-propio').innerHTML=prop.map(itemHTML).join('')||'<div class="viaje-empty">Ninguno aún.</div>';
   document.getElementById('lista-sin').innerHTML=sin.map(itemHTML).join('')||'<div class="viaje-empty">Todos definidos ✓</div>';
@@ -690,7 +755,7 @@ async function agregarHabitacion(){
     habitaciones.push({...data,ocupantes:[]});
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
-  renderHabitaciones();
+  renderVistasDerivadas();
 }
 
 async function eliminarHabitacion(hi){
@@ -702,7 +767,7 @@ async function eliminarHabitacion(hi){
     habitaciones.splice(hi,1);
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
-  renderHabitaciones();
+  renderVistasDerivadas();
 }
 
 async function cambiarCapacidad(hi,val){
@@ -721,7 +786,7 @@ async function cambiarCapacidad(hi,val){
     }
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
-  renderHabitaciones();
+  renderVistasDerivadas();
 }
 
 async function cambiarNro(hi,val){
@@ -747,7 +812,7 @@ async function asignarHab(hi,jId){
     habitaciones[hi].ocupantes.push(jId);
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
-  renderHabitaciones();
+  renderVistasDerivadas();
 }
 
 async function quitarDeHab(hi,jId){
@@ -758,20 +823,33 @@ async function quitarDeHab(hi,jId){
     habitaciones[hi].ocupantes=habitaciones[hi].ocupantes.filter(id=>id!==jId);
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
-  renderHabitaciones();
+  renderVistasDerivadas();
 }
 
 function renderHabitaciones(){
   const list=document.getElementById('hab-list');
-  if(!habitaciones.length){list.innerHTML='<div style="color:var(--suave);font-size:.82em;padding:14px 0">Agregá habitaciones abajo.</div>';return}
+  if(!habitaciones.length){
+    list.innerHTML='<div style="color:var(--suave);font-size:.82em;padding:14px 0">Agregá habitaciones abajo.</div>';
+    return;
+  }
+  const personas=personasHabitables();
   const asignados=new Set(habitaciones.flatMap(h=>h.ocupantes));
+
   list.innerHTML=habitaciones.map((h,hi)=>{
     const cap=h.capacidad||3;
     const llena=h.ocupantes.length>=cap;
     const ocHTML=h.ocupantes.length
-      ?h.ocupantes.map(id=>{const j=jugadores.find(j=>j.id===id);return j?`<li class="hab-ocupante">👤 ${j.apellido}, ${j.nombre}<span class="hab-remove" onclick="quitarDeHab(${hi},${id})">✕</span></li>`:''}).join('')
+      ?h.ocupantes.map(id=>{
+          const j=personas.find(j=>j.id===id);
+          const tag=j && esComitiva(j)?' <span style="color:var(--suave)">· comitiva</span>':'';
+          return j?`<li class="hab-ocupante">👤 ${j.apellido}, ${j.nombre}${tag}<span class="hab-remove" onclick="quitarDeHab(${hi},${id})">✕</span></li>`:'';
+        }).join('')
       :`<li class="hab-empty">Sin asignar</li>`;
-    const libres=jugadores.filter(j=>!asignados.has(j.id)||h.ocupantes.includes(j.id)).filter(j=>!h.ocupantes.includes(j.id));
+
+    const libres=personas
+      .filter(j=>!asignados.has(j.id)||h.ocupantes.includes(j.id))
+      .filter(j=>!h.ocupantes.includes(j.id));
+
     return `<div class="hab-card">
       <div class="hab-header">
         <div class="hab-nombre">🚪 ${h.nombre}</div>
@@ -785,7 +863,9 @@ function renderHabitaciones(){
       <ul class="hab-ocupantes">${ocHTML}</ul>
       ${llena
         ?`<div class="hab-llena">⚠ Habitación completa</div>`
-        :(libres.length?`<select class="hab-select" onchange="asignarHab(${hi},this.value)"><option value="">+ Agregar persona…</option>${libres.map(j=>`<option value="${j.id}">${j.apellido}, ${j.nombre}</option>`).join('')}</select>`:'')
+        :(libres.length
+          ?`<select class="hab-select" onchange="asignarHab(${hi},this.value)"><option value="">+ Agregar persona…</option>${libres.map(j=>`<option value="${j.id}">${j.apellido}, ${j.nombre}${esComitiva(j)?' · comitiva':''}</option>`).join('')}</select>`
+          :'')
       }
     </div>`;
   }).join('');
@@ -794,9 +874,13 @@ function renderHabitaciones(){
 // ── LISTA BF ─────────────────────────────────────────────────────────────
 function renderBuenaFe(){
   const tbl=document.getElementById('buenafe-table');
-  if(!jugadores.length){tbl.innerHTML='<tr><td style="color:var(--suave);padding:18px">Sin jugadores.</td></tr>';return}
+  const base=soloJugadores();
+  if(!base.length){
+    tbl.innerHTML='<tr><td style="color:var(--suave);padding:18px">Sin jugadores.</td></tr>';
+    return;
+  }
   let html=`<thead><tr><th>#</th><th>Apellido</th><th>Nombre</th><th>DNI</th><th>F. Nac.</th><th>T° y F°</th><th>Profesión</th></tr></thead><tbody>`;
-  jugadores.forEach((j,i)=>{
+  base.forEach((j,i)=>{
     const fnac=j.fnac?new Date(j.fnac+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
     const tf=j.tomo?(j.folio?`T° ${j.tomo} - F° ${j.folio}`:j.tomo):'';
     html+=`<tr><td class="num-col">${i+1}</td><td><strong>${j.apellido}</strong></td><td>${j.nombre}</td><td>${j.dni||''}</td><td>${fnac}</td><td>${tf}</td><td>${j.titulo||''}</td></tr>`;
@@ -805,15 +889,15 @@ function renderBuenaFe(){
 }
 
 function actualizarBadge(){
-  const n=jugadores.length;
-  document.getElementById('badge-total').textContent=n+(n===1?' persona':' personas');
+  const jug=soloJugadores().length;
+  const com=soloComitiva().length;
+  document.getElementById('badge-total').textContent = `${jug} jug${jug===1?'':'s'} · ${com} com.`;
 }
 
 // ── SYNC SILENCIOSO (refresca sin recargar página) ───────────────────────
 async function syncDesdeDB(){
   if(saving) return; // no sincronizar mientras se está guardando
   try{
-    const tabActiva=document.querySelector('.section.active')?.id?.replace('sec-','');
     const {data:jData}  = await sb.from('jugadores').select('*').order('apellido');
     const {data:pData}  = await sb.from('pagos').select('*');
     const {data:hData}  = await sb.from('habitaciones').select('*').order('id');
@@ -822,13 +906,7 @@ async function syncDesdeDB(){
     jugadores    = jData.map(j=>({...j,docs:{dni:j.doc_dni,titulo:j.doc_titulo}}));
     pagos        = pData||[];
     habitaciones = (hData||[]).map(h=>({...h,ocupantes:(ocData||[]).filter(o=>o.habitacion_id===h.id).map(o=>o.jugador_id)}));
-    actualizarBadge();
-    if(tabActiva==='resumen')      renderResumen();
-    if(tabActiva==='jugadores')    renderJugadores();
-    if(tabActiva==='pagos')        renderPagos(filtroActivo);
-    if(tabActiva==='viaje')        renderViaje();
-    if(tabActiva==='habitaciones') renderHabitaciones();
-    if(tabActiva==='buenafe')      renderBuenaFe();
+    renderVistasDerivadas();
     setSyncing('ok');
   }catch(e){ setSyncing('err'); }
 }
