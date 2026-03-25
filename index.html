@@ -106,12 +106,14 @@
     .viaje-cols{display:grid;grid-template-columns:1fr 1fr;gap:9px}
     .viaje-card{background:var(--gris2);border:1px solid var(--borde);border-radius:13px;padding:13px}
     .viaje-card-title{font-family:'Bebas Neue',sans-serif;font-size:.95em;margin-bottom:9px;display:flex;align-items:center;gap:7px}
-    .viaje-item{display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid var(--borde);font-size:.8em}
+    .viaje-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--borde);font-size:.82em}
     .viaje-item:last-child{border-bottom:none}
-    .vtoggle{width:17px;height:17px;border-radius:4px;border:2px solid var(--borde);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.65em;transition:all .15s}
-    .vtoggle.colectivo{background:rgba(74,222,128,.2);border-color:var(--verde);color:var(--verde)}
-    .vtoggle.propio{background:rgba(251,146,60,.15);border-color:var(--naranja);color:var(--naranja)}
-    .vtoggle.none{background:transparent;border-color:var(--borde);color:var(--suave)}
+    .viaje-nombre{flex:1;font-weight:500}
+    .viaje-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .viaje-btn{font-size:.68em;font-weight:700;padding:5px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--borde);background:var(--gris3);color:var(--suave);transition:all .15s;user-select:none}
+    .viaje-btn.active-none{border-color:var(--suave);color:var(--suave);background:transparent}
+    .viaje-btn.active-colectivo{border-color:var(--verde);color:var(--verde);background:rgba(74,222,128,.12)}
+    .viaje-btn.active-propio{border-color:var(--naranja);color:var(--naranja);background:rgba(251,146,60,.12)}
     .viaje-empty{font-size:.75em;color:var(--suave);font-style:italic;padding:6px 0}
     .viaje-leyenda{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
     .vley-item{display:flex;align-items:center;gap:5px;font-size:.72em;color:var(--suave)}
@@ -696,23 +698,22 @@ function renderPagos(filtro){
 }
 
 // ── VIAJE ────────────────────────────────────────────────────────────────
-async function ciclaTransporte(idx){
-  const ciclo=['none','colectivo','propio'];
-  const j=jugadores[idx];
-  const cur=j.transporte||'none';
-  const next=ciclo[(ciclo.indexOf(cur)+1)%ciclo.length];
+async function setTransporte(jId,next){
+  const j=jugadores.find(x=>x.id===jId);
+  if(!j) return;
 
   let estadoViaje='debe';
   if(next==='colectivo') estadoViaje='pagado';
   if(next==='propio') estadoViaje='noaplica';
+  if(next==='none') estadoViaje='debe';
 
   setSyncing('syncing');
   try{
-    const {error:errorJugador}=await sb.from('jugadores').update({transporte:next}).eq('id',j.id);
-    if(errorJugador)throw errorJugador;
+    const {error:errorJugador}=await sb.from('jugadores').update({transporte:next}).eq('id',jId);
+    if(errorJugador) throw errorJugador;
     j.transporte=next;
 
-    await upsertPagoEstado(j.id,'viaje',estadoViaje);
+    await upsertPagoEstado(jId,'viaje',estadoViaje);
 
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
@@ -723,7 +724,7 @@ async function ciclaTransporte(idx){
 }
 
 function renderViaje(){
-  const base=personasHabitables();
+  const base=soloJugadores();
   const col=base.filter(j=>j.transporte==='colectivo');
   const prop=base.filter(j=>j.transporte==='propio');
   const sin=base.filter(j=>!j.transporte||j.transporte==='none');
@@ -732,13 +733,14 @@ function renderViaje(){
   document.getElementById('propio-count').textContent=`(${prop.length})`;
   document.getElementById('sin-count').textContent=`(${sin.length})`;
 
-  const itemHTML=j=>{
-    const i=jugadores.indexOf(j);
-    const cls=j.transporte==='colectivo'?'colectivo':j.transporte==='propio'?'propio':'none';
-    const icon=j.transporte==='colectivo'?'🚌':j.transporte==='propio'?'🚗':'❓';
-    const rol = esComitiva(j) ? ' <span style="color:var(--suave);font-size:.82em">· comitiva</span>' : '';
-    return `<div class="viaje-item"><div class="vtoggle ${cls}" onclick="ciclaTransporte(${i})">${icon}</div><span>${j.apellido}, ${j.nombre}${rol}</span></div>`;
-  };
+  const itemHTML=j=>`<div class="viaje-item">
+    <div class="viaje-nombre">${j.apellido}, ${j.nombre}</div>
+    <div class="viaje-actions">
+      <div class="viaje-btn ${(!j.transporte||j.transporte==='none')?'active-none':''}" onclick="setTransporte(${j.id},'none')">Sin definir</div>
+      <div class="viaje-btn ${j.transporte==='colectivo'?'active-colectivo':''}" onclick="setTransporte(${j.id},'colectivo')">🚌 Colectivo</div>
+      <div class="viaje-btn ${j.transporte==='propio'?'active-propio':''}" onclick="setTransporte(${j.id},'propio')">🚗 Por su cuenta</div>
+    </div>
+  </div>`;
 
   document.getElementById('lista-colectivo').innerHTML=col.map(itemHTML).join('')||'<div class="viaje-empty">Ninguno aún.</div>';
   document.getElementById('lista-propio').innerHTML=prop.map(itemHTML).join('')||'<div class="viaje-empty">Ninguno aún.</div>';
