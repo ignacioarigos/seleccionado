@@ -312,7 +312,10 @@
   <section class="section" id="sec-indumentaria">
     <div class="indu-header">
       <div class="sec-title" style="margin:0">👕 Indumentaria</div>
-      <div class="indu-stats" id="indu-stats"></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="indu-stats" id="indu-stats"></div>
+        <button class="btn-primary" onclick="imprimirIndumentaria()">🖨 PDF</button>
+      </div>
     </div>
 
     <div class="indu-table-wrap">
@@ -1125,12 +1128,23 @@ function buildInduStats(){
   `;
 }
 
-function nroOptions(selected){
+function nroOptions(selected, usados=new Set()){
   let opts='<option value="">—</option>';
   for(let i=1;i<=39;i++){
+    const ocupado = usados.has(String(i)) || usados.has(i);
+    if(ocupado) continue; // omitir números ya asignados a otro
     opts+=`<option value="${i}"${selected==i?' selected':''}>${i}</option>`;
   }
   return opts;
+}
+
+// Devuelve un Set con todos los números de remera ya usados en indumentaria
+function nrosUsados(excluirRowId=null){
+  const s=new Set();
+  indumentaria.forEach(r=>{
+    if(r.nro_remera && String(r.id)!==String(excluirRowId)) s.add(String(r.nro_remera));
+  });
+  return s;
 }
 
 function talleOptions(selected){
@@ -1163,6 +1177,7 @@ function renderIndumentaria(){
       const talleP=row?.talle_pantalon||'';
       const nom=row?.nombre_camiseta||'';
 
+      const usadosJ=nrosUsados(rid);
       rows+=`<tr>
         <td class="num-col">${i+1}</td>
         <td class="indu-nombre-cell">
@@ -1171,7 +1186,7 @@ function renderIndumentaria(){
         <td>
           <select class="indu-select ${nro?'filled':''}"
             onchange="this.className='indu-select'+(this.value?' filled':'');onInduChange(${rid?`'${rid}'`:'null'},${j.id},'nro_remera',this.value)">
-            ${nroOptions(nro)}
+            ${nroOptions(nro,usadosJ)}
           </select>
         </td>
         <td>
@@ -1207,6 +1222,7 @@ function renderIndumentaria(){
       const talleP=r.talle_pantalon||'';
       const nom=r.nombre_camiseta||'';
       const nombre=`${r.apellido_extra||''}, ${r.nombre_extra||''}`.trim().replace(/^,\s*/,'');
+      const usadosE=nrosUsados(rid);
       rows+=`<tr class="indu-extra-row">
         <td class="num-col">${jugLista.length+ei+1}</td>
         <td class="indu-nombre-cell">
@@ -1216,7 +1232,7 @@ function renderIndumentaria(){
         <td>
           <select class="indu-select ${nro?'filled':''}"
             onchange="this.className='indu-select'+(this.value?' filled':'');onInduChange('${rid}',null,'nro_remera',this.value)">
-            ${nroOptions(nro)}
+            ${nroOptions(nro,usadosE)}
           </select>
         </td>
         <td>
@@ -1284,6 +1300,82 @@ async function eliminarInduExtra(rowId){
     toast('Eliminado');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
   renderIndumentaria();
+}
+
+// ── IMPRIMIR INDUMENTARIA ────────────────────────────────────────────────
+function imprimirIndumentaria(){
+  const jugLista=soloJugadores();
+  const extras=indumentaria.filter(r=>r.es_extra);
+  const todas=[
+    ...jugLista.map((j,i)=>{
+      const r=indumentaria.find(x=>x.jugador_id===j.id && !x.es_extra);
+      return {
+        num: i+1,
+        apellido: j.apellido,
+        nombre: j.nombre,
+        nro: r?.nro_remera||'',
+        talleR: r?.talle_remera||'',
+        talleP: r?.talle_pantalon||'',
+        camiseta: r?.nombre_camiseta||'',
+        extra: false,
+      };
+    }),
+    ...extras.map((r,ei)=>({
+      num: jugLista.length+ei+1,
+      apellido: r.apellido_extra||'',
+      nombre: r.nombre_extra||'',
+      nro: r.nro_remera||'',
+      talleR: r.talle_remera||'',
+      talleP: r.talle_pantalon||'',
+      camiseta: r.nombre_camiseta||'',
+      extra: true,
+    }))
+  ];
+
+  const filas=todas.map(p=>`
+    <tr${p.extra?' class="extra-row"':''}>
+      <td class="num">${p.num}</td>
+      <td><strong>${p.apellido}</strong></td>
+      <td>${p.nombre}</td>
+      <td class="centro">${p.nro||'—'}</td>
+      <td class="centro">${p.talleR||'—'}</td>
+      <td class="centro">${p.talleP||'—'}</td>
+      <td>${p.camiseta||'—'}</td>
+    </tr>`).join('');
+
+  const html=`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Indumentaria — Catamarca 2026</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:20px}
+  h2{font-size:15px;margin-bottom:4px}
+  p{font-size:10px;color:#666;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse}
+  th{background:#222;color:#fff;padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+  td{padding:5px 8px;border-bottom:1px solid #ddd;vertical-align:middle}
+  tr:nth-child(even) td{background:#f7f7f7}
+  .extra-row td{background:#fff8ee}
+  .num{color:#999;width:24px}
+  .centro{text-align:center}
+  @media print{body{margin:10px}}
+</style>
+</head>
+<body>
+<h2>⚽ Catamarca 2026 — Indumentaria</h2>
+<p>29 Abr – 3 May 2026 · ${todas.length} personas</p>
+<table>
+  <thead><tr><th>#</th><th>Apellido</th><th>Nombre</th><th>N° Remera</th><th>T. Remera</th><th>T. Pantalón</th><th>Nombre camiseta</th></tr></thead>
+  <tbody>${filas}</tbody>
+</table>
+</body></html>`;
+
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(),400);
 }
 
 // ── BADGE ─────────────────────────────────────────────────────────────────
