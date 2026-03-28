@@ -635,27 +635,20 @@ async function guardarJugador(){
 }
 
 async function crearFilaIndu(datos){
-  try{
-    const row={
-      jugador_id: datos.jugador_id||null,
-      nombre_extra: datos.nombre_extra||null,
-      apellido_extra: datos.apellido_extra||null,
-      es_extra: datos.es_extra||false,
-      nro_remera: datos.nro_remera||null,
-      talle_remera: datos.talle_remera||null,
-      talle_pantalon: datos.talle_pantalon||null,
-      nombre_camiseta: datos.nombre_camiseta||null,
-    };
-    const {data,error}=await sb.from('indumentaria').insert(row).select().single();
-    if(error) throw error;
-    indumentaria.push(data);
-    return data;
-  }catch(e){
-    // tabla no existe: guardar solo en memoria
-    const fake={id:Date.now(),...datos};
-    indumentaria.push(fake);
-    return fake;
-  }
+  const row={
+    jugador_id: datos.jugador_id||null,
+    nombre_extra: datos.nombre_extra||null,
+    apellido_extra: datos.apellido_extra||null,
+    es_extra: datos.es_extra||false,
+    nro_remera: datos.nro_remera||null,
+    talle_remera: datos.talle_remera||null,
+    talle_pantalon: datos.talle_pantalon||null,
+    nombre_camiseta: datos.nombre_camiseta||null,
+  };
+  const {data,error}=await sb.from('indumentaria').insert(row).select().single();
+  if(error) throw error;
+  indumentaria.push(data);
+  return data;
 }
 
 async function eliminarJugador(idx){
@@ -1051,7 +1044,7 @@ function getInduRow(jId){
   return indumentaria.find(r=>r.jugador_id===jId && !r.es_extra);
 }
 
-// Guarda un campo de indumentaria con debounce
+// Guarda un campo de indumentaria (solo con ID numérico real)
 const induDebounce={};
 async function saveInduField(rowId, campo, valor){
   setSyncing('syncing');
@@ -1070,22 +1063,50 @@ function debounceIndu(rowId, campo, valor, delay=900){
   induDebounce[key]=setTimeout(()=>saveInduField(rowId,campo,valor),delay);
 }
 
+// Crea la fila en Supabase y devuelve el ID numérico real
+async function crearFilaInduReal(jId, campo, valor){
+  const row={
+    jugador_id: jId,
+    es_extra: false,
+    nombre_extra: null,
+    apellido_extra: null,
+    nro_remera: null,
+    talle_remera: null,
+    talle_pantalon: null,
+    nombre_camiseta: null,
+    [campo]: valor||null,
+  };
+  const {data,error}=await sb.from('indumentaria').insert(row).select().single();
+  if(error) throw error;
+  // Reemplazar la entrada en memoria (que no tenía ID real) con la real
+  const idx=indumentaria.findIndex(r=>r.jugador_id===jId && !r.es_extra);
+  if(idx>=0) indumentaria[idx]=data;
+  else indumentaria.push(data);
+  return data;
+}
+
 async function onInduChange(rowId, jId, campo, valor){
-  // Si no hay fila aún para este jugador, crearla
-  if(!rowId && jId){
-    const nueva=await crearFilaIndu({jugador_id:jId,[campo]:valor});
-    renderIndumentaria();
-    return;
-  }
-  const row=indumentaria.find(r=>r.id===rowId);
-  if(row) row[campo]=valor||null;
-  // Para selects: guardar inmediatamente; para texto: debounce
-  if(campo==='nombre_camiseta'){
-    debounceIndu(rowId, campo, valor);
-  } else {
-    await saveInduField(rowId, campo, valor);
-  }
-  // Actualizar estadísticas
+  setSyncing('syncing');
+  try{
+    // Si la fila todavía no existe en DB (rowId es null), crearla ahora
+    if(!rowId && jId){
+      const nueva=await crearFilaInduReal(jId, campo, valor);
+      setSyncing('ok');
+      // Re-renderizar para que los demás campos de esta fila usen el ID real
+      renderIndumentaria();
+      document.getElementById('indu-stats').innerHTML=buildInduStats();
+      return;
+    }
+    // Fila ya existe — actualizar solo el campo
+    const row=indumentaria.find(r=>r.id===rowId);
+    if(row) row[campo]=valor||null;
+    if(campo==='nombre_camiseta'){
+      debounceIndu(rowId, campo, valor);
+    } else {
+      await saveInduField(rowId, campo, valor);
+    }
+    setSyncing('ok');
+  }catch(e){setSyncing('err');toast('Error: '+e.message,'err');}
   document.getElementById('indu-stats').innerHTML=buildInduStats();
 }
 
@@ -1125,22 +1146,7 @@ function renderIndumentaria(){
   const statsEl=document.getElementById('indu-stats');
   const jugLista=soloJugadores();
 
-  // Asegurar que todos los jugadores tengan fila (en memoria al menos)
-  jugLista.forEach(j=>{
-    if(!indumentaria.find(r=>r.jugador_id===j.id && !r.es_extra)){
-      indumentaria.push({
-        id: 'mem_'+j.id,
-        jugador_id: j.id,
-        es_extra: false,
-        nro_remera: null,
-        talle_remera: null,
-        talle_pantalon: null,
-        nombre_camiseta: null,
-        nombre_extra: null,
-        apellido_extra: null,
-      });
-    }
-  });
+  // Las filas se crean en Supabase al primer cambio (no fake mem_ IDs)
 
   statsEl.innerHTML=buildInduStats();
 
