@@ -203,6 +203,9 @@
     .modal-field input:focus,.modal-field select:focus{border-color:var(--verde)}
     .modal-actions{display:flex;gap:8px;flex-wrap:wrap}
 
+    /* check dots hover */
+    [onclick*="cicloPago"]:hover{ filter:brightness(1.2); }
+
     @media print{
       .header,.tabs,.btn-add,.btn-primary,.btn-cancel,.card-actions,.pago-tipos,.loading-screen,.toast{display:none!important}
       body{background:white;color:black}
@@ -272,13 +275,13 @@
   <section class="section" id="sec-viaje">
     <div class="sec-title">Medio de transporte</div>
     <div class="viaje-leyenda">
-      <div class="vley-item"><div class="vley-dot" style="background:var(--verde)"></div>Colectivo grupal</div>
+      <div class="vley-item"><div class="vley-dot" style="background:var(--verde)"></div>Avión</div>
       <div class="vley-item"><div class="vley-dot" style="background:var(--naranja)"></div>Por su cuenta</div>
       <div class="vley-item"><div class="vley-dot" style="background:var(--borde)"></div>Sin definir</div>
     </div>
     <div class="viaje-cols">
       <div class="viaje-card">
-        <div class="viaje-card-title" style="color:var(--verde)">🚌 Colectivo <span id="col-count" style="font-size:.7em;color:var(--suave)"></span></div>
+        <div class="viaje-card-title" style="color:var(--verde)">✈️ Avión <span id="col-count" style="font-size:.7em;color:var(--suave)"></span></div>
         <div id="lista-colectivo"></div>
       </div>
       <div class="viaje-card">
@@ -444,11 +447,15 @@ let editIdx      = null;
 let filtroActivo = 'todos';
 let saving       = false;
 
-const TIPOS   = ['inscripcion','hotel','viaje'];
-const EST_STD = ['debe','parcial','pagado'];
-const EST_VIA = ['debe','parcial','pagado','noaplica'];
-const LABELS  = {debe:'Debe',parcial:'Parcial',pagado:'Pagado',noaplica:'Por su cuenta'};
-const TLABELS = {inscripcion:'Inscripción',hotel:'Hotel',viaje:'Transporte'};
+const TIPOS        = ['inscripcion','hotel','viaje'];
+const EST_INSC     = ['debe','pagado'];                          // Inscripción: solo 2 estados
+const EST_HOTEL    = ['debe','parcial','pagado'];                // Hotel: seña = parcial
+const EST_VIA      = ['debe','pagado','noaplica'];               // Viaje: debe/pagado/no aplica
+const EST_STD      = EST_HOTEL;                                  // fallback
+const LABELS       = {debe:'Debe',parcial:'Seña',pagado:'Pagado',noaplica:'Por su cuenta'};
+const TLABELS      = {inscripcion:'Inscripción',hotel:'Hotel',viaje:'Transporte'};
+const HOTEL_TOTAL  = 100000;  // $ por persona
+const HOTEL_SENIA  = 50000;   // $ por persona
 const TALLES  = ['S','M','L','XL','XXL','XXXL'];
 
 const ROLES = { jugador:'jugador', comitiva:'comitiva' };
@@ -753,7 +760,7 @@ function renderResumen(){
   const jug=jugLista.length;
   const com=comLista.length;
   const docOk=jugLista.filter(j=>j.doc_dni&&j.doc_titulo).length;
-  const conColectivo=jugLista.filter(j=>j.transporte==='colectivo').length;
+  const conColectivo=jugLista.filter(j=>j.transporte==='avion').length;
   const porSuCuenta=jugLista.filter(j=>j.transporte==='propio').length;
   const sinDefinir=jugLista.filter(j=>!j.transporte||j.transporte==='none').length;
 
@@ -766,7 +773,7 @@ function renderResumen(){
     <div class="pago-bar-wrap">
       <div class="pago-bar-header"><div class="pago-bar-label">Transporte jugadores</div></div>
       <div class="pago-bar-sub">
-        <span>🚌 Colectivo: <b style="color:var(--verde)">${conColectivo}</b></span>
+        <span>✈️ Avión: <b style="color:var(--verde)">${conColectivo}</b></span>
         <span>🚗 Por su cuenta: <b style="color:var(--naranja)">${porSuCuenta}</b></span>
         <span>❓ Sin definir: <b style="color:var(--suave)">${sinDefinir}</b></span>
       </div>
@@ -807,7 +814,7 @@ function filtrarPago(tipo,btn){
 }
 
 async function cicloPago(tipo,jId){
-  const estados=tipo==='viaje'?EST_VIA:EST_STD;
+  const estados = tipo==='inscripcion'?EST_INSC : tipo==='hotel'?EST_HOTEL : EST_VIA;
   const cur=paymentState(jId,tipo);
   const next=estados[(estados.indexOf(cur)+1)%estados.length];
   setSyncing('syncing');
@@ -818,7 +825,7 @@ async function cicloPago(tipo,jId){
       if(j){
         let t='none';
         if(next==='noaplica') t='propio';
-        else if(next==='pagado'||next==='parcial') t='colectivo';
+        else if(next==='pagado') t='avion';
         if(t!==j.transporte){
           const {error}=await sb.from('jugadores').update({transporte:t}).eq('id',jId);
           if(error) throw error;
@@ -833,6 +840,8 @@ async function cicloPago(tipo,jId){
   renderViaje();
 }
 
+function fmtPesos(n){ return '$ '+n.toLocaleString('es-AR'); }
+
 function renderPagos(filtro){
   const lista=document.getElementById('lista-pagos');
   const base=soloJugadores();
@@ -840,19 +849,110 @@ function renderPagos(filtro){
     lista.innerHTML='<div style="color:var(--suave);font-size:.83em;padding:10px 0">Agregá jugadores primero.</div>';
     return;
   }
-  const tipos=filtro==='todos'?TIPOS:[filtro];
-  let html='';
-  tipos.forEach(tipo=>{
-    html+=`<div style="font-size:.62em;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--suave);padding:10px 0 3px;border-top:1px solid var(--borde);margin-top:2px">${TLABELS[tipo]}</div>`;
+
+  // ── TODOS: checkboxes de resumen ───────────────────────────────────────
+  if(filtro==='todos'){
+    let html='<div style="font-size:.62em;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--suave);padding:6px 0 8px">Estado general</div>';
+    html+='<div style="display:grid;grid-template-columns:auto 1fr repeat(3,28px);gap:4px 8px;align-items:center;font-size:.72em;margin-bottom:8px">';
+    html+='<div></div><div></div>';
+    html+='<div style="text-align:center;font-size:.6em;color:var(--suave);font-weight:700;text-transform:uppercase">INSC</div>';
+    html+='<div style="text-align:center;font-size:.6em;color:var(--suave);font-weight:700;text-transform:uppercase">HOT</div>';
+    html+='<div style="text-align:center;font-size:.6em;color:var(--suave);font-weight:700;text-transform:uppercase">VIAJE</div>';
+    base.forEach((j,i)=>{
+      const eI=paymentState(j.id,'inscripcion');
+      const eH=paymentState(j.id,'hotel');
+      const eV=paymentState(j.id,'viaje');
+      html+=`<div style="color:var(--suave);font-size:.75em">${i+1}</div>`;
+      html+=`<div style="font-weight:600">${j.apellido}, ${j.nombre}</div>`;
+      html+=checkDot(eI,'inscripcion',j.id);
+      html+=checkDot(eH,'hotel',j.id);
+      html+=checkDot(eV,'viaje',j.id);
+    });
+    html+='</div>';
+    // leyenda
+    html+=`<div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--borde)">
+      <div style="display:flex;align-items:center;gap:5px;font-size:.65em;color:var(--suave)">${dotSvg('var(--verde)')} Pagado</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:.65em;color:var(--suave)">${dotSvg('var(--amarillo)')} Seña / Parcial</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:.65em;color:var(--suave)">${dotSvg('var(--rojo)')} Debe</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:.65em;color:var(--suave)">${dotSvg('var(--naranja)')} No aplica</div>
+    </div>`;
+    lista.innerHTML=html;
+    return;
+  }
+
+  // ── INSCRIPCIÓN: solo debe/pagado ─────────────────────────────────────
+  if(filtro==='inscripcion'){
+    let html='';
     base.forEach(j=>{
-      const est=paymentState(j.id,tipo);
+      const est=paymentState(j.id,'inscripcion');
       html+=`<div class="pago-row">
         <div class="pago-nombre">${j.apellido}, ${j.nombre}</div>
-        <div class="pago-estado ${est}" onclick="cicloPago('${tipo}',${j.id})">${LABELS[est]}</div>
+        <div class="pago-estado ${est}" onclick="cicloPago('inscripcion',${j.id})">${LABELS[est]}</div>
       </div>`;
     });
-  });
-  lista.innerHTML=html;
+    lista.innerHTML=html;
+    return;
+  }
+
+  // ── HOTEL: seña + total con montos ────────────────────────────────────
+  if(filtro==='hotel'){
+    let html='';
+    let totalRecaudado=0;
+    base.forEach(j=>{
+      const est=paymentState(j.id,'hotel');
+      if(est==='pagado')   totalRecaudado+=HOTEL_TOTAL;
+      if(est==='parcial')  totalRecaudado+=HOTEL_SENIA;
+      html+=`<div class="pago-row">
+        <div class="pago-nombre">${j.apellido}, ${j.nombre}</div>
+        <div class="pago-estado ${est}" onclick="cicloPago('hotel',${j.id})">${LABELS[est]}</div>
+      </div>`;
+    });
+    const totalEsperado=base.length*HOTEL_TOTAL;
+    const pct=totalEsperado?Math.round(totalRecaudado/totalEsperado*100):0;
+    html+=`<div style="margin-top:13px;padding-top:11px;border-top:2px solid var(--borde)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:.72em;color:var(--suave);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Recaudado</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:1.3em;color:var(--verde)">${fmtPesos(totalRecaudado)}</span>
+      </div>
+      <div class="bar-track" style="margin-bottom:6px"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:.65em;color:var(--suave)">
+        <span>Seña ${fmtPesos(HOTEL_SENIA)} · Total ${fmtPesos(HOTEL_TOTAL)} p/p</span>
+        <span><b style="color:var(--texto)">${fmtPesos(totalEsperado-totalRecaudado)}</b> faltante</span>
+      </div>
+    </div>`;
+    lista.innerHTML=html;
+    return;
+  }
+
+  // ── VIAJE / TRANSPORTE ─────────────────────────────────────────────────
+  if(filtro==='viaje'){
+    let html='';
+    base.forEach(j=>{
+      const est=paymentState(j.id,'viaje');
+      html+=`<div class="pago-row">
+        <div class="pago-nombre">${j.apellido}, ${j.nombre}</div>
+        <div class="pago-estado ${est}" onclick="cicloPago('viaje',${j.id})">${LABELS[est]}</div>
+      </div>`;
+    });
+    lista.innerHTML=html;
+    return;
+  }
+}
+
+function dotSvg(color){
+  return `<svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="${color}"/></svg>`;
+}
+
+function checkDot(estado, tipo, jId){
+  let color, symbol, title;
+  if(estado==='pagado')   { color='var(--verde)';   symbol='✓'; title='Pagado'; }
+  else if(estado==='parcial')  { color='var(--amarillo)'; symbol='◑'; title='Seña'; }
+  else if(estado==='noaplica') { color='var(--naranja)';  symbol='—'; title='No aplica'; }
+  else                         { color='var(--rojo)';     symbol='✗'; title='Debe'; }
+  return `<div title="${title}" onclick="cicloPago('${tipo}',${jId})"
+    style="width:26px;height:26px;border-radius:6px;background:${color}20;border:1.5px solid ${color};
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    font-size:.75em;font-weight:700;color:${color};transition:all .15s;user-select:none">${symbol}</div>`;
 }
 
 // ── VIAJE ────────────────────────────────────────────────────────────────
@@ -860,9 +960,9 @@ async function setTransporte(jId,next){
   const j=jugadores.find(x=>x.id===jId);
   if(!j) return;
   let estadoViaje='debe';
-  if(next==='colectivo') estadoViaje='pagado';
+  if(next==='avion')  estadoViaje='pagado';
   if(next==='propio') estadoViaje='noaplica';
-  if(next==='none') estadoViaje='debe';
+  if(next==='none')   estadoViaje='debe';
   setSyncing('syncing');
   try{
     const {error:errorJugador}=await sb.from('jugadores').update({transporte:next}).eq('id',jId);
@@ -878,7 +978,7 @@ async function setTransporte(jId,next){
 
 function renderViaje(){
   const base=soloJugadores();
-  const col=base.filter(j=>j.transporte==='colectivo');
+  const col=base.filter(j=>j.transporte==='avion');
   const prop=base.filter(j=>j.transporte==='propio');
   const sin=base.filter(j=>!j.transporte||j.transporte==='none');
 
@@ -890,7 +990,7 @@ function renderViaje(){
     <div class="viaje-nombre">${j.apellido}, ${j.nombre}</div>
     <div class="viaje-actions">
       <div class="viaje-btn ${(!j.transporte||j.transporte==='none')?'active-none':''}" onclick="setTransporte(${j.id},'none')">Sin definir</div>
-      <div class="viaje-btn ${j.transporte==='colectivo'?'active-colectivo':''}" onclick="setTransporte(${j.id},'colectivo')">🚌 Colectivo</div>
+      <div class="viaje-btn ${j.transporte==='avion'?'active-colectivo':''}" onclick="setTransporte(${j.id},'avion')">✈️ Avión</div>
       <div class="viaje-btn ${j.transporte==='propio'?'active-propio':''}" onclick="setTransporte(${j.id},'propio')">🚗 Por su cuenta</div>
     </div>
   </div>`;
