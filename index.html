@@ -11,7 +11,7 @@
       --negro:#0f0f0f; --gris1:#1a1a1a; --gris2:#242424; --gris3:#2e2e2e; --gris4:#3a3a3a;
       --borde:#333; --texto:#e8e8e8; --suave:#888;
       --verde:#4ade80; --rojo:#f87171; --amarillo:#fbbf24; --azul:#60a5fa; --naranja:#fb923c;
-      --blanco:#ffffff;
+      --violeta:#a78bfa; --blanco:#ffffff;
     }
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     body{background:var(--negro);color:var(--texto);font-family:'DM Sans',sans-serif;min-height:100vh;padding-bottom:80px}
@@ -145,11 +145,49 @@
     .buenafe-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
     .num-col{color:var(--suave);font-size:.8em;width:22px}
 
+    /* ─── INDUMENTARIA ─────────────────────────────────── */
+    .indu-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+    .indu-stats{display:flex;gap:8px;flex-wrap:wrap}
+    .indu-stat{font-size:.7em;color:var(--suave);background:var(--gris2);border:1px solid var(--borde);border-radius:7px;padding:4px 10px}
+    .indu-stat b{color:var(--violeta)}
+    .indu-table-wrap{overflow-x:auto;border-radius:13px;border:1px solid var(--borde)}
+    .indu-table{width:100%;border-collapse:collapse;font-size:.77em;min-width:560px}
+    .indu-table th{background:var(--gris3);color:var(--suave);font-size:.6em;letter-spacing:1px;text-transform:uppercase;padding:9px 8px;text-align:left;border-bottom:1px solid var(--borde);white-space:nowrap}
+    .indu-table th:first-child{border-radius:13px 0 0 0}
+    .indu-table th:last-child{border-radius:0 13px 0 0}
+    .indu-table td{padding:7px 8px;border-bottom:1px solid var(--borde);vertical-align:middle}
+    .indu-table tr:last-child td{border-bottom:none}
+    .indu-table tr:hover td{background:rgba(255,255,255,.025)}
+    .indu-nombre-cell{font-weight:600;color:var(--blanco);white-space:nowrap}
+    .indu-nombre-cell .indu-sub{font-size:.75em;font-weight:400;color:var(--suave);display:block}
+    .indu-select{background:var(--gris3);border:1px solid var(--borde);border-radius:7px;color:var(--texto);font-family:'DM Sans',sans-serif;font-size:.82em;padding:5px 7px;outline:none;cursor:pointer;width:100%;transition:border-color .2s}
+    .indu-select:focus{border-color:var(--violeta)}
+    .indu-select.filled{border-color:var(--violeta);color:var(--violeta)}
+    .indu-text{background:var(--gris3);border:1px solid var(--borde);border-radius:7px;color:var(--texto);font-family:'DM Sans',sans-serif;font-size:.82em;padding:5px 8px;outline:none;width:100%;min-width:90px;transition:border-color .2s}
+    .indu-text:focus{border-color:var(--verde)}
+    .indu-text.filled{border-color:rgba(74,222,128,.5)}
+    .indu-num-badge{font-family:'Bebas Neue',sans-serif;font-size:1.3em;color:var(--amarillo);min-width:28px;display:inline-block;text-align:center}
+    .indu-num-badge.empty{color:var(--suave);font-size:.9em;font-family:'DM Sans',sans-serif}
+    .indu-talle-badge{font-size:.68em;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(167,139,250,.15);color:var(--violeta);border:1px solid rgba(167,139,250,.3)}
+    .indu-talle-badge.empty{background:transparent;color:var(--suave);border-color:var(--borde)}
+    .indu-extra-row{background:rgba(167,139,250,.03)}
+    .indu-extra-header{font-size:.6em;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--violeta);padding:8px 8px 4px;border-bottom:1px solid var(--borde)}
+
+    /* Pestaña extra: agregar persona a indumentaria */
+    .indu-extra-add{background:var(--gris2);border:1px solid var(--borde);border-radius:13px;padding:13px;margin-top:13px}
+    .indu-extra-add-title{font-family:'Bebas Neue',sans-serif;font-size:.9em;color:var(--suave);margin-bottom:9px;text-transform:uppercase;letter-spacing:1px}
+    .indu-add-form{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .indu-add-form .full{grid-column:1/-1}
+    .indu-add-label{font-size:.58em;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--suave);display:block;margin-bottom:3px}
+    .indu-add-input,.indu-add-select{width:100%;background:var(--gris3);border:1px solid var(--borde);border-radius:9px;color:var(--texto);font-family:'DM Sans',sans-serif;font-size:.87em;padding:9px 11px;outline:none;transition:border-color .2s}
+    .indu-add-input:focus,.indu-add-select:focus{border-color:var(--violeta)}
+
     /* BOTONES */
     .btn-add{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:11px;background:var(--gris3);border:1px dashed var(--borde);border-radius:11px;color:var(--suave);font-family:'DM Sans',sans-serif;font-weight:700;font-size:.8em;cursor:pointer;margin-top:8px;transition:all .2s}
     .btn-add:hover{border-color:var(--verde);color:var(--verde)}
     .btn-primary{background:var(--verde);color:var(--negro);border:none;border-radius:9px;padding:9px 17px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.82em;cursor:pointer;transition:opacity .15s}
     .btn-primary:hover{opacity:.85}
+    .btn-primary.violeta{background:var(--violeta)}
     .btn-cancel{background:var(--gris3);color:var(--texto);border:1px solid var(--borde);border-radius:9px;padding:9px 15px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.82em;cursor:pointer}
 
     /* MODAL */
@@ -168,8 +206,10 @@
     @media print{
       .header,.tabs,.btn-add,.btn-primary,.btn-cancel,.card-actions,.pago-tipos,.loading-screen,.toast{display:none!important}
       body{background:white;color:black}
-      .buenafe-table th{background:#eee;color:#333}
-      .buenafe-table td{color:#111;border-color:#ccc}
+      .buenafe-table th,.indu-table th{background:#eee;color:#333}
+      .buenafe-table td,.indu-table td{color:#111;border-color:#ccc}
+      .indu-table-wrap{border:1px solid #ccc;border-radius:0}
+      .indu-select,.indu-text{border:none;background:transparent;color:#111}
     }
   </style>
 </head>
@@ -204,6 +244,7 @@
   <div class="tab"         onclick="switchTab('viaje',this)">🚌 Viaje</div>
   <div class="tab"         onclick="switchTab('habitaciones',this)">🏨 Hab.</div>
   <div class="tab"         onclick="switchTab('buenafe',this)">📋 Lista BF</div>
+  <div class="tab"         onclick="switchTab('indumentaria',this)">👕 Ropa</div>
 </div>
 
 <div class="content">
@@ -212,10 +253,12 @@
     <div class="sec-title">Estado de pagos</div>
     <div id="dash-barras"></div>
   </section>
+
   <section class="section" id="sec-jugadores">
     <div id="lista-jugadores"></div>
     <button class="btn-add" onclick="abrirModal()">+ Agregar jugador</button>
   </section>
+
   <section class="section" id="sec-pagos">
     <div class="pago-tipos">
       <button class="pago-tipo-btn active" onclick="filtrarPago('todos',this)">Todos</button>
@@ -225,6 +268,7 @@
     </div>
     <div class="card"><div id="lista-pagos"></div></div>
   </section>
+
   <section class="section" id="sec-viaje">
     <div class="sec-title">Medio de transporte</div>
     <div class="viaje-leyenda">
@@ -249,17 +293,87 @@
       </div>
     </div>
   </section>
+
   <section class="section" id="sec-habitaciones">
     <div class="sec-title">Habitaciones</div>
     <div class="hab-list" id="hab-list"></div>
     <button class="btn-add" onclick="agregarHabitacion()">+ Nueva habitación</button>
   </section>
+
   <section class="section" id="sec-buenafe">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:7px">
       <div class="sec-title" style="margin:0">Lista de Buena Fe</div>
       <button class="btn-primary" onclick="window.print()">🖨 Imprimir</button>
     </div>
     <div style="overflow-x:auto"><table class="buenafe-table" id="buenafe-table"></table></div>
+  </section>
+
+  <!-- ─── INDUMENTARIA ──────────────────────────────── -->
+  <section class="section" id="sec-indumentaria">
+    <div class="indu-header">
+      <div class="sec-title" style="margin:0">👕 Indumentaria</div>
+      <div class="indu-stats" id="indu-stats"></div>
+    </div>
+
+    <div class="indu-table-wrap">
+      <table class="indu-table" id="indu-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Jugador</th>
+            <th>N° Remera</th>
+            <th>Talle Remera</th>
+            <th>Talle Pantalón</th>
+            <th>Nombre en camiseta</th>
+          </tr>
+        </thead>
+        <tbody id="indu-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Agregar persona extra (no jugador) -->
+    <div class="indu-extra-add">
+      <div class="indu-extra-add-title">+ Agregar persona a esta lista</div>
+      <div style="font-size:.72em;color:var(--suave);margin-bottom:10px">Para personas que no están en el plantel (árbitros, comitiva adicional, etc.)</div>
+      <div class="indu-add-form">
+        <div>
+          <label class="indu-add-label">Nombre *</label>
+          <input class="indu-add-input" type="text" id="indu-nombre" placeholder="Juan">
+        </div>
+        <div>
+          <label class="indu-add-label">Apellido *</label>
+          <input class="indu-add-input" type="text" id="indu-apellido" placeholder="Pérez">
+        </div>
+        <div>
+          <label class="indu-add-label">N° Remera</label>
+          <select class="indu-add-select" id="indu-nro">
+            <option value="">Sin número</option>
+            ${Array.from({length:39},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="indu-add-label">Talle Remera</label>
+          <select class="indu-add-select" id="indu-talle-r">
+            <option value="">Sin definir</option>
+            <option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option>
+          </select>
+        </div>
+        <div>
+          <label class="indu-add-label">Talle Pantalón</label>
+          <select class="indu-add-select" id="indu-talle-p">
+            <option value="">Sin definir</option>
+            <option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option>
+          </select>
+        </div>
+        <div>
+          <label class="indu-add-label">Nombre en camiseta</label>
+          <input class="indu-add-input" type="text" id="indu-camiseta" placeholder="PÉREZ">
+        </div>
+        <div class="full" style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn-primary violeta" onclick="agregarInduExtra()">Agregar</button>
+        </div>
+      </div>
+    </div>
   </section>
 </div>
 
@@ -292,7 +406,7 @@ const SUPA_URL = 'https://vfhrpydvlknskmizsfsg.supabase.co';
 const SUPA_KEY = 'sb_publishable_iMfMo1tPhxA1W_BI_ucb2A_fUVtNIVF';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// ── DATOS INICIALES (migración automática primera vez) ─────────────────
+// ── DATOS INICIALES ─────────────────────────────────────────────────────
 const INIT = [
   {id:1000,nombre:"Marcos Daniel",    apellido:"Alí",                dni:"27560703",fnac:"1979-06-28",tomo:"95",         folio:"789",titulo:"Abogado",rol:"jugador",transporte:"none",doc_dni:true,doc_titulo:true},
   {id:1001,nombre:"Ignacio",          apellido:"Arigós",             dni:"31289316",fnac:"1984-07-11",tomo:"120",        folio:"824",titulo:"Abogado",rol:"jugador",transporte:"none",doc_dni:true,doc_titulo:true},
@@ -320,8 +434,9 @@ const INIT = [
 
 // ── ESTADO LOCAL ────────────────────────────────────────────────────────
 let jugadores    = [];
-let pagos        = [];  // [{jugador_id, tipo, estado}]
-let habitaciones = [];  // [{id, nombre, capacidad, nro, ocupantes:[jugador_id]}]
+let pagos        = [];
+let habitaciones = [];
+let indumentaria = []; // [{id, jugador_id?, nombre_extra?, apellido_extra?, nro_remera, talle_remera, talle_pantalon, nombre_camiseta, es_extra}]
 let editIdx      = null;
 let filtroActivo = 'todos';
 let saving       = false;
@@ -331,6 +446,7 @@ const EST_STD = ['debe','parcial','pagado'];
 const EST_VIA = ['debe','parcial','pagado','noaplica'];
 const LABELS  = {debe:'Debe',parcial:'Parcial',pagado:'Pagado',noaplica:'Por su cuenta'};
 const TLABELS = {inscripcion:'Inscripción',hotel:'Hotel',viaje:'Transporte'};
+const TALLES  = ['S','M','L','XL','XXL','XXXL'];
 
 const ROLES = { jugador:'jugador', comitiva:'comitiva' };
 
@@ -338,7 +454,8 @@ function esJugador(j){ return (j?.rol || 'jugador') === ROLES.jugador; }
 function esComitiva(j){ return (j?.rol || 'jugador') === ROLES.comitiva; }
 function soloJugadores(){ return jugadores.filter(esJugador); }
 function soloComitiva(){ return jugadores.filter(esComitiva); }
-function personasHabitables(){ return jugadores; } // jugadores + comitiva
+function personasHabitables(){ return jugadores; }
+
 function fmtFecha(fecha){
   return fecha ? new Date(fecha+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
 }
@@ -369,6 +486,7 @@ function renderVistasDerivadas(){
   if(document.getElementById('sec-viaje').classList.contains('active')) renderViaje();
   if(document.getElementById('sec-habitaciones').classList.contains('active')) renderHabitaciones();
   if(document.getElementById('sec-buenafe').classList.contains('active')) renderBuenaFe();
+  if(document.getElementById('sec-indumentaria').classList.contains('active')) renderIndumentaria();
 }
 
 // ── TOAST ───────────────────────────────────────────────────────────────
@@ -379,7 +497,7 @@ function toast(msg, tipo='ok'){
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
 }
-function setSyncing(state){ // 'ok'|'syncing'|'err'
+function setSyncing(state){
   const dot=document.getElementById('sync-dot');
   dot.className='sync-dot'+(state==='syncing'?' syncing':state==='err'?' err':'');
 }
@@ -415,6 +533,9 @@ async function init(){
       ocupantes: ocData.filter(o=>o.habitacion_id===h.id).map(o=>o.jugador_id)
     }));
 
+    // Cargar indumentaria
+    await cargarIndumentaria();
+
     setSyncing('ok');
     document.getElementById('loading-screen').classList.add('hide');
     renderVistasDerivadas();
@@ -426,18 +547,34 @@ async function init(){
   }
 }
 
+async function cargarIndumentaria(){
+  // Intenta cargar desde la tabla indumentaria; si no existe, usa array vacío
+  try {
+    const {data, error} = await sb.from('indumentaria').select('*').order('id');
+    if(error){
+      // tabla no existe todavía, ignorar
+      indumentaria=[];
+      return;
+    }
+    indumentaria = data || [];
+  } catch(e){
+    indumentaria=[];
+  }
+}
+
 // ── TABS ────────────────────────────────────────────────────────────────
 function switchTab(tab,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('sec-'+tab).classList.add('active');
-  if(tab==='resumen')      renderResumen();
-  if(tab==='jugadores')    renderJugadores();
-  if(tab==='pagos')        renderPagos(filtroActivo);
-  if(tab==='viaje')        renderViaje();
-  if(tab==='habitaciones') renderHabitaciones();
-  if(tab==='buenafe')      renderBuenaFe();
+  if(tab==='resumen')       renderResumen();
+  if(tab==='jugadores')     renderJugadores();
+  if(tab==='pagos')         renderPagos(filtroActivo);
+  if(tab==='viaje')         renderViaje();
+  if(tab==='habitaciones')  renderHabitaciones();
+  if(tab==='buenafe')       renderBuenaFe();
+  if(tab==='indumentaria')  renderIndumentaria();
 }
 
 // ── MODAL ───────────────────────────────────────────────────────────────
@@ -487,12 +624,38 @@ async function guardarJugador(){
       if(error)throw error;
       await sb.from('pagos').insert(TIPOS.map(t=>({jugador_id:datos.id,tipo:t,estado:'debe'})));
       jugadores.push({...datos,docs:{dni:false,titulo:false}});
+      // Crear fila indumentaria vacía para el nuevo jugador
+      await crearFilaIndu({jugador_id:datos.id});
       toast('Jugador agregado');
     }
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
   cerrarModal();
   renderVistasDerivadas();
+}
+
+async function crearFilaIndu(datos){
+  try{
+    const row={
+      jugador_id: datos.jugador_id||null,
+      nombre_extra: datos.nombre_extra||null,
+      apellido_extra: datos.apellido_extra||null,
+      es_extra: datos.es_extra||false,
+      nro_remera: datos.nro_remera||null,
+      talle_remera: datos.talle_remera||null,
+      talle_pantalon: datos.talle_pantalon||null,
+      nombre_camiseta: datos.nombre_camiseta||null,
+    };
+    const {data,error}=await sb.from('indumentaria').insert(row).select().single();
+    if(error) throw error;
+    indumentaria.push(data);
+    return data;
+  }catch(e){
+    // tabla no existe: guardar solo en memoria
+    const fake={id:Date.now(),...datos};
+    indumentaria.push(fake);
+    return fake;
+  }
 }
 
 async function eliminarJugador(idx){
@@ -506,6 +669,7 @@ async function eliminarJugador(idx){
     jugadores.splice(idx,1);
     pagos=pagos.filter(p=>p.jugador_id!==j.id);
     habitaciones.forEach(h=>{h.ocupantes=h.ocupantes.filter(id=>id!==j.id)});
+    // no borramos la fila de indumentaria automáticamente
     toast('Jugador eliminado');
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
@@ -653,14 +817,12 @@ async function cicloPago(tipo,jId){
   setSyncing('syncing');
   try{
     await upsertPagoEstado(jId,tipo,next);
-
     if(tipo==='viaje'){
       const j=jugadores.find(j=>j.id===jId);
       if(j){
         let t='none';
         if(next==='noaplica') t='propio';
         else if(next==='pagado'||next==='parcial') t='colectivo';
-
         if(t!==j.transporte){
           const {error}=await sb.from('jugadores').update({transporte:t}).eq('id',jId);
           if(error) throw error;
@@ -701,23 +863,18 @@ function renderPagos(filtro){
 async function setTransporte(jId,next){
   const j=jugadores.find(x=>x.id===jId);
   if(!j) return;
-
   let estadoViaje='debe';
   if(next==='colectivo') estadoViaje='pagado';
   if(next==='propio') estadoViaje='noaplica';
   if(next==='none') estadoViaje='debe';
-
   setSyncing('syncing');
   try{
     const {error:errorJugador}=await sb.from('jugadores').update({transporte:next}).eq('id',jId);
     if(errorJugador) throw errorJugador;
     j.transporte=next;
-
     await upsertPagoEstado(jId,'viaje',estadoViaje);
-
     setSyncing('ok');
   }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
-
   renderResumen();
   renderViaje();
   if(document.getElementById('sec-pagos').classList.contains('active')) renderPagos(filtroActivo);
@@ -802,7 +959,6 @@ async function asignarHab(hi,jId){
   if(habitaciones[hi].ocupantes.length>=cap){alert('Habitación llena ('+cap+' personas).');return}
   setSyncing('syncing');
   try{
-    // quitar de otras habitaciones
     for(const h of habitaciones){
       if(h.ocupantes.includes(jId)&&h.id!==habitaciones[hi].id){
         await sb.from('hab_ocupantes').delete().eq('habitacion_id',h.id).eq('jugador_id',jId);
@@ -890,24 +1046,261 @@ function renderBuenaFe(){
   tbl.innerHTML=html+'</tbody>';
 }
 
+// ── INDUMENTARIA ─────────────────────────────────────────────────────────
+function getInduRow(jId){
+  return indumentaria.find(r=>r.jugador_id===jId && !r.es_extra);
+}
+
+// Guarda un campo de indumentaria con debounce
+const induDebounce={};
+async function saveInduField(rowId, campo, valor){
+  setSyncing('syncing');
+  try{
+    const {error}=await sb.from('indumentaria').update({[campo]:valor||null}).eq('id',rowId);
+    if(error) throw error;
+    const row=indumentaria.find(r=>r.id===rowId);
+    if(row) row[campo]=valor||null;
+    setSyncing('ok');
+  }catch(e){setSyncing('err');toast('Error guardando: '+e.message,'err');}
+}
+
+function debounceIndu(rowId, campo, valor, delay=900){
+  const key=rowId+'_'+campo;
+  clearTimeout(induDebounce[key]);
+  induDebounce[key]=setTimeout(()=>saveInduField(rowId,campo,valor),delay);
+}
+
+async function onInduChange(rowId, jId, campo, valor){
+  // Si no hay fila aún para este jugador, crearla
+  if(!rowId && jId){
+    const nueva=await crearFilaIndu({jugador_id:jId,[campo]:valor});
+    renderIndumentaria();
+    return;
+  }
+  const row=indumentaria.find(r=>r.id===rowId);
+  if(row) row[campo]=valor||null;
+  // Para selects: guardar inmediatamente; para texto: debounce
+  if(campo==='nombre_camiseta'){
+    debounceIndu(rowId, campo, valor);
+  } else {
+    await saveInduField(rowId, campo, valor);
+  }
+  // Actualizar estadísticas
+  document.getElementById('indu-stats').innerHTML=buildInduStats();
+}
+
+function buildInduStats(){
+  const todos=[...soloJugadores().map(j=>{
+    const r=getInduRow(j.id);
+    return r;
+  }).filter(Boolean),...indumentaria.filter(r=>r.es_extra)];
+
+  const conNro=todos.filter(r=>r&&r.nro_remera).length;
+  const conTalle=todos.filter(r=>r&&r.talle_remera).length;
+  const total=soloJugadores().length+indumentaria.filter(r=>r.es_extra).length;
+  return `
+    <div class="indu-stat">N° asignados: <b>${conNro}/${total}</b></div>
+    <div class="indu-stat">Talles cargados: <b>${conTalle}/${total}</b></div>
+  `;
+}
+
+function nroOptions(selected){
+  let opts='<option value="">—</option>';
+  for(let i=1;i<=39;i++){
+    opts+=`<option value="${i}"${selected==i?' selected':''}>${i}</option>`;
+  }
+  return opts;
+}
+
+function talleOptions(selected){
+  let opts='<option value="">—</option>';
+  TALLES.forEach(t=>{
+    opts+=`<option value="${t}"${selected===t?' selected':''}>${t}</option>`;
+  });
+  return opts;
+}
+
+function renderIndumentaria(){
+  const tbody=document.getElementById('indu-tbody');
+  const statsEl=document.getElementById('indu-stats');
+  const jugLista=soloJugadores();
+
+  // Asegurar que todos los jugadores tengan fila (en memoria al menos)
+  jugLista.forEach(j=>{
+    if(!indumentaria.find(r=>r.jugador_id===j.id && !r.es_extra)){
+      indumentaria.push({
+        id: 'mem_'+j.id,
+        jugador_id: j.id,
+        es_extra: false,
+        nro_remera: null,
+        talle_remera: null,
+        talle_pantalon: null,
+        nombre_camiseta: null,
+        nombre_extra: null,
+        apellido_extra: null,
+      });
+    }
+  });
+
+  statsEl.innerHTML=buildInduStats();
+
+  let rows='';
+
+  // Sección jugadores
+  if(jugLista.length){
+    rows+=`<tr><td colspan="6" class="indu-extra-header">⚽ Jugadores (${jugLista.length})</td></tr>`;
+    jugLista.forEach((j,i)=>{
+      const row=indumentaria.find(r=>r.jugador_id===j.id && !r.es_extra);
+      const rid=row?.id||null;
+      const nro=row?.nro_remera||'';
+      const talleR=row?.talle_remera||'';
+      const talleP=row?.talle_pantalon||'';
+      const nom=row?.nombre_camiseta||'';
+
+      rows+=`<tr>
+        <td class="num-col">${i+1}</td>
+        <td class="indu-nombre-cell">
+          ${j.apellido}<span class="indu-sub">${j.nombre}</span>
+        </td>
+        <td>
+          <select class="indu-select ${nro?'filled':''}"
+            onchange="this.className='indu-select'+(this.value?' filled':'');onInduChange(${rid?`'${rid}'`:'null'},${j.id},'nro_remera',this.value)">
+            ${nroOptions(nro)}
+          </select>
+        </td>
+        <td>
+          <select class="indu-select ${talleR?'filled':''}"
+            onchange="this.className='indu-select'+(this.value?' filled':'');onInduChange(${rid?`'${rid}'`:'null'},${j.id},'talle_remera',this.value)">
+            ${talleOptions(talleR)}
+          </select>
+        </td>
+        <td>
+          <select class="indu-select ${talleP?'filled':''}"
+            onchange="this.className='indu-select'+(this.value?' filled':'');onInduChange(${rid?`'${rid}'`:'null'},${j.id},'talle_pantalon',this.value)">
+            ${talleOptions(talleP)}
+          </select>
+        </td>
+        <td>
+          <input class="indu-text ${nom?'filled':''}" type="text"
+            value="${nom.replace(/"/g,'&quot;')}" placeholder="APELLIDO"
+            oninput="this.className='indu-text'+(this.value?' filled':'');onInduChange(${rid?`'${rid}'`:'null'},${j.id},'nombre_camiseta',this.value)"
+          >
+        </td>
+      </tr>`;
+    });
+  }
+
+  // Sección extras
+  const extras=indumentaria.filter(r=>r.es_extra);
+  if(extras.length){
+    rows+=`<tr><td colspan="6" class="indu-extra-header" style="color:var(--naranja)">➕ Extras / Comitiva (${extras.length})</td></tr>`;
+    extras.forEach((r,ei)=>{
+      const rid=r.id;
+      const nro=r.nro_remera||'';
+      const talleR=r.talle_remera||'';
+      const talleP=r.talle_pantalon||'';
+      const nom=r.nombre_camiseta||'';
+      const nombre=`${r.apellido_extra||''}, ${r.nombre_extra||''}`.trim().replace(/^,\s*/,'');
+      rows+=`<tr class="indu-extra-row">
+        <td class="num-col">${jugLista.length+ei+1}</td>
+        <td class="indu-nombre-cell">
+          ${nombre||'<span style="color:var(--suave);font-style:italic">Sin nombre</span>'}
+          <span class="indu-sub" style="color:var(--naranja)">extra</span>
+        </td>
+        <td>
+          <select class="indu-select ${nro?'filled':''}"
+            onchange="this.className='indu-select'+(this.value?' filled':'');onInduChange('${rid}',null,'nro_remera',this.value)">
+            ${nroOptions(nro)}
+          </select>
+        </td>
+        <td>
+          <select class="indu-select ${talleR?'filled':''}"
+            onchange="this.className='indu-select'+(this.value?' filled':'');onInduChange('${rid}',null,'talle_remera',this.value)">
+            ${talleOptions(talleR)}
+          </select>
+        </td>
+        <td>
+          <select class="indu-select ${talleP?'filled':''}"
+            onchange="this.className='indu-select'+(this.value?' filled':'');onInduChange('${rid}',null,'talle_pantalon',this.value)">
+            ${talleOptions(talleP)}
+          </select>
+        </td>
+        <td style="display:flex;gap:5px;align-items:center">
+          <input class="indu-text ${nom?'filled':''}" type="text"
+            value="${nom.replace(/"/g,'&quot;')}" placeholder="APELLIDO"
+            oninput="this.className='indu-text'+(this.value?' filled':'');onInduChange('${rid}',null,'nombre_camiseta',this.value)"
+            style="flex:1"
+          >
+          <button class="hab-remove" onclick="eliminarInduExtra('${rid}')" title="Quitar">✕</button>
+        </td>
+      </tr>`;
+    });
+  }
+
+  if(!rows){
+    rows='<tr><td colspan="6" style="color:var(--suave);font-size:.82em;padding:18px 8px">Sin datos aún.</td></tr>';
+  }
+
+  tbody.innerHTML=rows;
+}
+
+async function agregarInduExtra(){
+  const nombre=document.getElementById('indu-nombre').value.trim();
+  const apellido=document.getElementById('indu-apellido').value.trim();
+  if(!nombre && !apellido){alert('Ingresá al menos nombre o apellido.');return}
+  const datos={
+    es_extra:true,
+    nombre_extra: nombre||null,
+    apellido_extra: apellido||null,
+    nro_remera: document.getElementById('indu-nro').value||null,
+    talle_remera: document.getElementById('indu-talle-r').value||null,
+    talle_pantalon: document.getElementById('indu-talle-p').value||null,
+    nombre_camiseta: document.getElementById('indu-camiseta').value.trim()||null,
+  };
+  setSyncing('syncing');
+  await crearFilaIndu(datos);
+  setSyncing('ok');
+  // Limpiar form
+  ['indu-nombre','indu-apellido','indu-camiseta'].forEach(id=>document.getElementById(id).value='');
+  ['indu-nro','indu-talle-r','indu-talle-p'].forEach(id=>document.getElementById(id).value='');
+  toast('Persona agregada a indumentaria');
+  renderIndumentaria();
+}
+
+async function eliminarInduExtra(rowId){
+  if(!confirm('¿Quitar esta persona de la lista?'))return;
+  setSyncing('syncing');
+  try{
+    const {error}=await sb.from('indumentaria').delete().eq('id',rowId);
+    if(error && !error.message.includes('does not exist')) throw error;
+    indumentaria=indumentaria.filter(r=>String(r.id)!==String(rowId));
+    setSyncing('ok');
+    toast('Eliminado');
+  }catch(e){setSyncing('err');toast('Error: '+e.message,'err');return}
+  renderIndumentaria();
+}
+
+// ── BADGE ─────────────────────────────────────────────────────────────────
 function actualizarBadge(){
   const jug=soloJugadores().length;
   const com=soloComitiva().length;
   document.getElementById('badge-total').textContent = `${jug} jug${jug===1?'':'s'} · ${com} com.`;
 }
 
-// ── SYNC SILENCIOSO (refresca sin recargar página) ───────────────────────
+// ── SYNC SILENCIOSO ───────────────────────────────────────────────────────
 async function syncDesdeDB(){
-  if(saving) return; // no sincronizar mientras se está guardando
+  if(saving) return;
   try{
     const {data:jData}  = await sb.from('jugadores').select('*').order('apellido');
     const {data:pData}  = await sb.from('pagos').select('*');
     const {data:hData}  = await sb.from('habitaciones').select('*').order('id');
     const {data:ocData} = await sb.from('hab_ocupantes').select('*');
+    const {data:iData}  = await sb.from('indumentaria').select('*').order('id');
     if(!jData) return;
     jugadores    = jData.map(j=>({...j,docs:{dni:j.doc_dni,titulo:j.doc_titulo}}));
     pagos        = pData||[];
     habitaciones = (hData||[]).map(h=>({...h,ocupantes:(ocData||[]).filter(o=>o.habitacion_id===h.id).map(o=>o.jugador_id)}));
+    indumentaria = iData||[];
     renderVistasDerivadas();
     setSyncing('ok');
   }catch(e){ setSyncing('err'); }
@@ -915,11 +1308,7 @@ async function syncDesdeDB(){
 
 // ── ARRANCAR ──────────────────────────────────────────────────────────────
 init();
-
-// Refresca cada 8 segundos
 setInterval(syncDesdeDB, 8000);
-
-// Refresca cuando volvés a la pestaña (celu ↔ compu)
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState==='visible') syncDesdeDB();
 });
