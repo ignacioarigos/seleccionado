@@ -1437,13 +1437,17 @@ function renderViaje(){
     const jId = j.id;
     const cur = j.transporte||'none';
     const badge = esExtra ? '<span style="font-size:.6em;color:var(--naranja);margin-left:4px">·extra</span>' : '';
-    const quitarBtn = esExtra ? `<div onclick="quitarPersonaExtra('${jId}','viaje')" style="color:var(--rojo);cursor:pointer;font-size:.65em;padding:1px 5px;border:1px solid var(--rojo);border-radius:3px;flex-shrink:0;margin-left:4px">✕</div>` : '';
+    const quitarBtn = esExtra ? `<span onclick="event.stopPropagation();quitarPersonaExtra('${jId}','viaje')" style="color:var(--rojo);cursor:pointer;font-size:.65em;padding:1px 5px;border:1px solid var(--rojo);border-radius:3px;flex-shrink:0;margin-left:6px">✕</span>` : '';
+    // Botón activo: sin onclick, estilo sólido. Inactivos: con onclick explícito
+    const btn = (val, label, cls) => cur===val
+      ? `<div class="viaje-btn ${cls}" style="pointer-events:none;opacity:1">${label}</div>`
+      : `<div class="viaje-btn" onclick="event.stopPropagation();setTransporteUnificado('${jId}','${val}',${esExtra})">${label}</div>`;
     return `<div class="viaje-item">
       <div class="viaje-nombre">${j.apellido||''}, ${j.nombre||''}${badge}${quitarBtn}</div>
-      <div class="viaje-actions">
-        <div class="viaje-btn ${cur==='none'?'active-none':''}" onclick="setTransporteUnificado('${jId}','none',${esExtra})">Sin definir</div>
-        <div class="viaje-btn ${cur==='avion'?'active-colectivo':''}" onclick="setTransporteUnificado('${jId}','avion',${esExtra})">✈️ Avión</div>
-        <div class="viaje-btn ${cur==='propio'?'active-propio':''}" onclick="setTransporteUnificado('${jId}','propio',${esExtra})">🚗 Por su cuenta</div>
+      <div class="viaje-actions" onclick="event.stopPropagation()">
+        ${btn('none','Sin definir','active-none')}
+        ${btn('avion','✈️ Avión','active-colectivo')}
+        ${btn('propio','🚗 Cuenta','active-propio')}
       </div>
     </div>`;
   };
@@ -1461,20 +1465,31 @@ function renderViaje(){
 
 // setTransporte para jugadores (actualiza pagos también)
 async function setTransporte(jId, next){
+  jId = Number(jId) || jId;
   const j = jugadores.find(x=>x.id===jId);
-  if(!j) return;
+  if(!j){ console.warn('setTransporte: jugador no encontrado', jId); return; }
   let estadoViaje = 'debe';
   if(next==='avion')  estadoViaje = 'pagado';
   if(next==='propio') estadoViaje = 'noaplica';
   if(next==='none')   estadoViaje = 'debe';
+
+  // Actualizar estado local PRIMERO → feedback visual inmediato
+  j.transporte = next;
+  renderViaje();
+
+  _syncPaused = true;
   setSyncing('syncing');
   try{
     const {error} = await sb.from('jugadores').update({transporte:next}).eq('id',jId);
     if(error) throw error;
-    j.transporte = next;
     await upsertPagoEstado(jId,'viaje',estadoViaje);
     setSyncing('ok');
-  }catch(e){ setSyncing('err'); toast('Error: '+e.message,'err'); return; }
+  }catch(e){
+    // Revertir si falla
+    j.transporte = (next==='avion'?'none':j.transporte);
+    setSyncing('err'); toast('Error: '+e.message,'err'); return;
+  }
+  _syncPaused = false;
   renderResumen();
   renderViaje();
   if(document.getElementById('sec-pagos').classList.contains('active')) renderPagos(filtroActivo);
@@ -1482,13 +1497,15 @@ async function setTransporte(jId, next){
 
 // setTransporte unificado: jugadores y extras
 async function setTransporteUnificado(jId, next, esExtra){
-  if(esExtra){
+  // esExtra llega como string 'true'/'false' desde el onclick del HTML
+  if(esExtra === true || esExtra === 'true'){
     const p = personasExtra.find(x=>x.id===jId);
     if(p){ p.transporte = next; }
     renderViaje();
     return;
   }
-  await setTransporte(jId, next);
+  // Para jugadores, jId viene como string desde onclick — convertir a número
+  await setTransporte(Number(jId)||jId, next);
 }
 
 
@@ -2076,8 +2093,10 @@ function actualizarBadge(){
 }
 
 // ── SYNC SILENCIOSO ───────────────────────────────────────────────────────
+let _syncPaused = false; // se activa durante operaciones de viaje
+
 async function syncDesdeDB(){
-  if(saving) return;
+  if(saving || _syncPaused) return;
   try{
     const {data:jData}  = await sb.from('jugadores').select('*').order('apellido');
     const {data:pData}  = await sb.from('pagos').select('*');
