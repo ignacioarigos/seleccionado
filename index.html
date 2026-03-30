@@ -529,8 +529,8 @@ function personasHabitables(){ return jugadores; }
 // Personas extra (hotel/viaje) — no van en BF
 function extrasHotel(){ return personasExtra.filter(p=>p.contexto==='hotel'); }
 function extrasViaje(){ return personasExtra.filter(p=>p.contexto==='viaje'); }
-function allEnHotel(){ return [...soloJugadores(),...extrasHotel()]; }
-function allEnViaje(){ return [...soloJugadores(),...extrasViaje()]; }
+function allEnHotel(){ return [...soloJugadores(),...soloComitiva(),...extrasHotel()]; }
+function allEnViaje(){ return [...soloJugadores(),...soloComitiva(),...extrasViaje()]; }
 
 // Genera un id local único para personas extra (prefijo 'ex_')
 function genExtraId(){ return 'ex_'+Date.now()+'_'+Math.random().toString(36).slice(2,6); }
@@ -618,6 +618,20 @@ async function init(){
     const {data:pData, error:pErr} = await sb.from('pagos').select('*');
     if(pErr) throw pErr;
     pagos=pData;
+
+    // Asegurar que comitiva tenga filas de pago para hotel y viaje
+    const comitiva = jugadores.filter(j=>(j.rol||'jugador')==='comitiva');
+    for(const j of comitiva){
+      for(const tipo of ['hotel','viaje']){
+        const existe = pagos.find(p=>String(p.jugador_id)===String(j.id) && p.tipo===tipo);
+        if(!existe){
+          const {data:np} = await sb.from('pagos')
+            .upsert({jugador_id:j.id,tipo,estado:'debe'},{onConflict:'jugador_id,tipo'})
+            .select().single();
+          if(np) pagos.push(np);
+        }
+      }
+    }
 
     const {data:hData, error:hErr} = await sb.from('habitaciones').select('*').order('id');
     if(hErr) throw hErr;
@@ -895,13 +909,6 @@ function renderResumen(){
 }
 
 // ── PAGOS ────────────────────────────────────────────────────────────────
-function filtrarPago(tipo,btn){
-  filtroActivo=tipo;
-  document.querySelectorAll('.pago-tipo-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderPagos(tipo);
-}
-
 async function cicloPago(tipo,jId){
   const estados = tipo==='inscripcion'?EST_INSC : tipo==='hotel'?EST_HOTEL : EST_VIA;
   const cur=paymentState(jId,tipo);
@@ -1023,6 +1030,20 @@ function renderPagos(filtro){
       html += cdot(eH,'hotel',j.id);
       html += cdot(eV,'viaje',j.id);
     });
+    // Comitiva en Todos (solo hotel y viaje — inscripción no aplica)
+    const com_todos = soloComitiva();
+    if(com_todos.length){
+      html += `<div style="grid-column:1/-1;font-size:.58em;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amarillo);padding:6px 0 2px;border-top:1px solid var(--borde);margin-top:2px">Comitiva</div>`;
+      com_todos.forEach((j,i)=>{
+        const eH = paymentState(j.id,'hotel');
+        const eV = paymentState(j.id,'viaje');
+        html += `<div style="font-size:.72em;color:var(--suave)">${jugadores_base.length+i+1}</div>`;
+        html += `<div style="font-size:.82em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--amarillo)">${j.apellido}, ${j.nombre}</div>`;
+        html += `<div style="width:30px;height:30px"></div>`; // inscripcion — no aplica
+        html += cdot(eH,'hotel',j.id);
+        html += cdot(eV,'viaje',j.id);
+      });
+    }
     html += '</div>';
     html += `<div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--borde);margin-top:8px">
       ${['pagado','parcial','debe','noaplica'].map(e=>`
@@ -1067,6 +1088,20 @@ function renderPagos(filtro){
         ${chipGroup('hotel', j.id, est, opcionesChip('hotel'))}
       </div>`;
     });
+
+    const comitiva_base = soloComitiva();
+    if(comitiva_base.length){
+      html += '<div class="lista-seccion" style="color:var(--amarillo)">Comitiva <span>'+comitiva_base.length+'</span></div>';
+      comitiva_base.forEach(j=>{
+        const est = paymentState(j.id,'hotel');
+        if(est==='pagado') recaudado+=HOTEL_TOTAL;
+        if(est==='parcial') recaudado+=HOTEL_SENIA;
+        html += `<div class="pago-row">
+          <div class="pago-nombre">${j.apellido}, ${j.nombre} <span class="pago-sub" style="color:var(--amarillo)">comitiva</span></div>
+          ${chipGroup('hotel', j.id, est, opcionesChip('hotel'))}
+        </div>`;
+      });
+    }
 
     if(extras.length){
       html += '<div class="lista-seccion" style="color:var(--naranja)">Extras hotel <span>'+extras.length+'</span></div>';
@@ -1117,7 +1152,6 @@ function renderPagos(filtro){
     html += '<div class="lista-seccion">Jugadores <span>'+jug_viaje.length+'</span></div>';
     jug_viaje.forEach(j=>{
       const est = paymentState(j.id,'viaje');
-      // Badge de transporte (solo lectura desde acá)
       const tBadge = j.transporte==='avion'
         ? `<span style="font-size:.6em;color:var(--verde);font-weight:700;flex-shrink:0">✈️ Avión</span>`
         : j.transporte==='propio'
@@ -1128,6 +1162,23 @@ function renderPagos(filtro){
         ${chipGroup('viaje', j.id, est, opcionesChip('viaje'))}
       </div>`;
     });
+
+    const comitiva_viaje = soloComitiva();
+    if(comitiva_viaje.length){
+      html += '<div class="lista-seccion" style="color:var(--amarillo)">Comitiva <span>'+comitiva_viaje.length+'</span></div>';
+      comitiva_viaje.forEach(j=>{
+        const est = paymentState(j.id,'viaje');
+        const tBadge = j.transporte==='avion'
+          ? `<span style="font-size:.6em;color:var(--verde);font-weight:700;flex-shrink:0">✈️ Avión</span>`
+          : j.transporte==='propio'
+          ? `<span style="font-size:.6em;color:var(--naranja);font-weight:700;flex-shrink:0">🚗 Por su cuenta</span>`
+          : `<span style="font-size:.6em;color:var(--suave);flex-shrink:0">Sin definir</span>`;
+        html += `<div class="pago-row">
+          <div class="pago-nombre">${j.apellido}, ${j.nombre}${tBadge} <span class="pago-sub" style="color:var(--amarillo)">comitiva</span></div>
+          ${chipGroup('viaje', j.id, est, opcionesChip('viaje'))}
+        </div>`;
+      });
+    }
 
     if(extras_v.length){
       html += '<div class="lista-seccion" style="color:var(--naranja)">Extras viaje <span>'+extras_v.length+'</span></div>';
@@ -1269,9 +1320,10 @@ function renderViaje(){
   const base = soloJugadores();
   const extras_v = extrasViaje();
 
-  const col  = base.filter(j=>j.transporte==='avion');
-  const prop = base.filter(j=>j.transporte==='propio');
-  const sin  = base.filter(j=>!j.transporte||j.transporte==='none');
+  const todosViaje = [...base, ...soloComitiva()];
+  const col  = todosViaje.filter(j=>j.transporte==='avion');
+  const prop = todosViaje.filter(j=>j.transporte==='propio');
+  const sin  = todosViaje.filter(j=>!j.transporte||j.transporte==='none');
   const sinExtras = extras_v.filter(p=>!p.transporte||p.transporte==='none');
   const colExtras = extras_v.filter(p=>p.transporte==='avion');
   const propExtras = extras_v.filter(p=>p.transporte==='propio');
