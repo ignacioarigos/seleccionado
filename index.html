@@ -547,20 +547,31 @@ function fmtTomoFolio(j){
   return j.tomo ? (j.folio ? `T° ${j.tomo} - F° ${j.folio}` : j.tomo) : '—';
 }
 function paymentState(jId,tipo){
-  return pagos.find(p=>p.jugador_id===jId && p.tipo===tipo)?.estado || 'debe';
+  // Comparar como strings para manejar tanto IDs numéricos como 'ex_...'
+  return pagos.find(p=>String(p.jugador_id)===String(jId) && p.tipo===tipo)?.estado || 'debe';
 }
-async function upsertPagoEstado(jId,tipo,estado){
-  const existente = pagos.find(p=>p.jugador_id===jId && p.tipo===tipo);
+async function upsertPagoEstado(jId, tipo, estado){
+  // jId puede ser número (jugadores reales) o string 'ex_...' (personas extra)
+  // Para personas extra solo actualizamos en memoria — no tienen fila en Supabase
+  const esExtra = String(jId).startsWith('ex_');
+
+  // Actualizar en memoria siempre
+  const existente = pagos.find(p=>String(p.jugador_id)===String(jId) && p.tipo===tipo);
   if(existente){
-    const {error} = await sb.from('pagos').update({estado}).eq('jugador_id',jId).eq('tipo',tipo);
-    if(error) throw error;
     existente.estado = estado;
-    return existente;
+  } else {
+    pagos.push({jugador_id:jId, tipo, estado});
   }
-  const {data,error} = await sb.from('pagos').insert({jugador_id:jId,tipo,estado}).select().single();
-  if(error) throw error;
-  pagos.push(data);
-  return data;
+
+  // Persistir en Supabase solo para jugadores reales
+  if(!esExtra){
+    const {error} = await sb.from('pagos')
+      .upsert({jugador_id:jId, tipo, estado}, {onConflict:'jugador_id,tipo'})
+      .select();
+    if(error) throw error;
+  }
+
+  return {jugador_id:jId, tipo, estado};
 }
 function renderVistasDerivadas(){
   actualizarBadge();
