@@ -714,13 +714,17 @@ async function guardarJugador(){
       jugadores[editIdx]={...jugadores[editIdx],...datos,docs:{dni:datos.doc_dni,titulo:datos.doc_titulo}};
       toast('Jugador actualizado');
     }else{
-      datos.id=Date.now();
-      const {error}=await sb.from('jugadores').insert(datos);
+      // NO asignamos id manual — Supabase lo genera con bigserial
+      delete datos.id;
+      const {data:inserted, error}=await sb.from('jugadores').insert(datos).select().single();
       if(error)throw error;
-      await sb.from('pagos').insert(TIPOS.map(t=>({jugador_id:datos.id,tipo:t,estado:'debe'})));
-      jugadores.push({...datos,docs:{dni:false,titulo:false}});
-      // Crear fila indumentaria vacía para el nuevo jugador
-      await crearFilaIndu({jugador_id:datos.id});
+      const nuevoId = inserted.id;
+      // Pagos iniciales usando el ID real devuelto por Supabase
+      await sb.from('pagos')
+        .upsert(TIPOS.map(t=>({jugador_id:nuevoId,tipo:t,estado:'debe'})),{onConflict:'jugador_id,tipo'});
+      jugadores.push({...inserted,docs:{dni:false,titulo:false}});
+      // Fila indumentaria con el ID real
+      await crearFilaIndu({jugador_id:nuevoId});
       toast('Jugador agregado');
     }
     setSyncing('ok');
