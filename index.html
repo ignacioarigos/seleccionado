@@ -260,6 +260,40 @@
     .cdot.debe{background:rgba(248,113,113,.15);color:var(--rojo);border-color:var(--rojo)}
     .cdot.noaplica{background:rgba(251,146,60,.15);color:var(--naranja);border-color:var(--naranja)}
 
+    /* ── CAJA $ ──────────────────────────────────────── */
+    .caja-saldo{background:var(--gris2);border:1px solid var(--borde);border-radius:13px;
+      padding:16px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+    .caja-saldo-label{font-size:.65em;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--suave)}
+    .caja-saldo-monto{font-family:'Bebas Neue',sans-serif;font-size:2.2em;line-height:1}
+    .caja-saldo-monto.pos{color:var(--verde)}
+    .caja-saldo-monto.neg{color:var(--rojo)}
+    .caja-saldo-monto.cero{color:var(--suave)}
+    .caja-form{background:var(--gris2);border:1px solid var(--borde);border-radius:13px;
+      padding:13px;margin-bottom:13px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .caja-form .full{grid-column:1/-1}
+    .caja-form label{font-size:.58em;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+      color:var(--suave);display:block;margin-bottom:3px}
+    .caja-form input,.caja-form select{width:100%;background:var(--gris3);border:1px solid var(--borde);
+      border-radius:9px;color:var(--texto);font-family:'DM Sans',sans-serif;font-size:.87em;
+      padding:9px 11px;outline:none;transition:border-color .2s}
+    .caja-form input:focus,.caja-form select:focus{border-color:var(--verde)}
+    .caja-table-wrap{overflow-x:auto;border-radius:13px;border:1px solid var(--borde)}
+    .caja-table{width:100%;border-collapse:collapse;font-size:.78em}
+    .caja-table th{background:var(--gris3);color:var(--suave);font-size:.6em;letter-spacing:1px;
+      text-transform:uppercase;padding:9px 10px;text-align:left;border-bottom:1px solid var(--borde)}
+    .caja-table td{padding:9px 10px;border-bottom:1px solid var(--borde);vertical-align:middle}
+    .caja-table tr:last-child td{border-bottom:none}
+    .caja-table tr:hover td{background:rgba(255,255,255,.02)}
+    .caja-monto-ing{color:var(--verde);font-weight:700;font-family:'Bebas Neue',sans-serif;font-size:1.1em}
+    .caja-monto-egr{color:var(--rojo);font-weight:700;font-family:'Bebas Neue',sans-serif;font-size:1.1em}
+    .caja-del{font-size:.62em;color:var(--rojo);cursor:pointer;padding:2px 6px;border:1px solid var(--rojo);
+      border-radius:4px;background:rgba(248,113,113,.08);opacity:.7}
+    .caja-del:hover{opacity:1}
+    .caja-tipo-ing{font-size:.6em;font-weight:700;padding:2px 7px;border-radius:10px;
+      background:rgba(74,222,128,.15);color:var(--verde);border:1px solid var(--verde)}
+    .caja-tipo-egr{font-size:.6em;font-weight:700;padding:2px 7px;border-radius:10px;
+      background:rgba(248,113,113,.12);color:var(--rojo);border:1px solid var(--rojo)}
+
     @media print{
       .header,.tabs,.btn-add,.btn-primary,.btn-cancel,.card-actions,.pago-tipos,.loading-screen,.toast{display:none!important}
       body{background:white;color:black}
@@ -302,6 +336,7 @@
   <div class="tab"         onclick="switchTab('habitaciones',this)">🏨 Hab.</div>
   <div class="tab"         onclick="switchTab('buenafe',this)">📋 Lista BF</div>
   <div class="tab"         onclick="switchTab('indumentaria',this)">👕 Ropa</div>
+  <div class="tab"         onclick="switchTab('caja',this)">💵 Caja</div>
 </div>
 
 <div class="content">
@@ -442,6 +477,56 @@
   </section>
 </div>
 
+  <!-- ─── CAJA $ ──────────────────────────────────── -->
+  <section class="section" id="sec-caja">
+    <div id="caja-saldo-wrap"></div>
+
+    <!-- Formulario nueva movimiento -->
+    <div class="caja-form">
+      <div class="full" style="font-family:'Bebas Neue',sans-serif;font-size:.9em;color:var(--suave);letter-spacing:1px;text-transform:uppercase">Nuevo movimiento</div>
+      <div>
+        <label>Tipo</label>
+        <select id="caja-tipo">
+          <option value="ingreso">💚 Ingreso</option>
+          <option value="egreso">🔴 Egreso</option>
+        </select>
+      </div>
+      <div>
+        <label>Fecha</label>
+        <input type="date" id="caja-fecha">
+      </div>
+      <div class="full">
+        <label>Descripción *</label>
+        <input type="text" id="caja-desc" placeholder="Ej: Remanente torneo anterior">
+      </div>
+      <div class="full">
+        <label>Monto $ *</label>
+        <input type="number" id="caja-monto" placeholder="0" min="0" step="100">
+      </div>
+      <div class="full">
+        <button class="btn-primary" onclick="agregarMovCaja()">+ Registrar</button>
+      </div>
+    </div>
+
+    <!-- Tabla movimientos -->
+    <div class="caja-table-wrap">
+      <table class="caja-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Descripción</th>
+            <th>Tipo</th>
+            <th style="text-align:right">Monto</th>
+            <th style="text-align:right">Saldo</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="caja-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
 <!-- MODAL -->
 <div class="modal-overlay" id="modal" onclick="cerrarModalOverlay(event)">
   <div class="modal">
@@ -503,6 +588,7 @@ let pagos          = [];
 let habitaciones   = [];
 let indumentaria   = [];
 let personasExtra  = []; // {id, nombre, apellido, contexto:'hotel'|'viaje', transporte?:'avion'|'propio'|'none'}
+let caja           = []; // [{id, fecha, descripcion, monto, tipo}]
 let editIdx        = null;
 let filtroActivo   = 'todos';
 let saving         = false;
@@ -582,6 +668,7 @@ function renderVistasDerivadas(){
   if(document.getElementById('sec-habitaciones').classList.contains('active')) renderHabitaciones();
   if(document.getElementById('sec-buenafe').classList.contains('active')) renderBuenaFe();
   if(document.getElementById('sec-indumentaria').classList.contains('active')) renderIndumentaria();
+  if(document.getElementById('sec-caja').classList.contains('active')) renderCaja();
 }
 
 // ── TOAST ───────────────────────────────────────────────────────────────
@@ -645,6 +732,12 @@ async function init(){
     // Cargar indumentaria
     await cargarIndumentaria();
 
+    // Cargar caja
+    try{
+      const {data:cajaData} = await sb.from('caja').select('*').order('fecha,id');
+      caja = cajaData || [];
+    }catch(e){ caja = []; }
+
     setSyncing('ok');
     document.getElementById('loading-screen').classList.add('hide');
     renderVistasDerivadas();
@@ -684,6 +777,7 @@ function switchTab(tab,el){
   if(tab==='habitaciones')  renderHabitaciones();
   if(tab==='buenafe')       renderBuenaFe();
   if(tab==='indumentaria')  renderIndumentaria();
+  if(tab==='caja')          renderCaja();
 }
 
 // ── MODAL ───────────────────────────────────────────────────────────────
@@ -940,11 +1034,14 @@ function fmtPesos(n){ return '$\u202f'+Number(n).toLocaleString('es-AR'); }
 
 // ── CHIPS HELPERS ────────────────────────────────────────────────────────
 function chipGroup(tipo, personaId, estadoActual, opciones){
-  // opciones: [{val, label}]
-  return '<div class="chip-group">'
+  return '<div class="chip-group" onclick="event.stopPropagation()">'
     + opciones.map(op=>{
         const activo = estadoActual===op.val ? `active-${op.val}` : '';
-        return `<div class="chip ${activo}" onclick="setPago('${tipo}','${personaId}','${op.val}')">${op.label}</div>`;
+        // No renderizar el chip activo como clickeable — ya está seleccionado
+        if(estadoActual===op.val){
+          return `<div class="chip ${activo}" style="pointer-events:none">${op.label}</div>`;
+        }
+        return `<div class="chip" onclick="event.stopPropagation();setPago('${tipo}','${personaId}','${op.val}')">${op.label}</div>`;
       }).join('')
     + '</div>';
 }
@@ -958,12 +1055,16 @@ function opcionesChip(tipo){
 
 // setPago: unificado para jugadores y extras
 // No sincroniza transporte desde pagos — esa dirección va de Viaje → Pagos
+let _setPagoLock = false;
 async function setPago(tipo, personaId, estado){
+  if(_setPagoLock) return;
+  _setPagoLock = true;
+  setTimeout(()=>{ _setPagoLock = false; }, 600); // 600ms lock anti-doble
   setSyncing('syncing');
   try{
     await upsertPagoEstado(personaId, tipo, estado);
     setSyncing('ok');
-  }catch(e){ setSyncing('err'); toast('Error: '+e.message,'err'); return; }
+  }catch(e){ setSyncing('err'); toast('Error: '+e.message,'err'); _setPagoLock=false; return; }
   renderPagos(filtroActivo);
   renderResumen();
 }
@@ -1869,6 +1970,104 @@ function imprimirIndumentaria(){
   setTimeout(()=>win.print(),400);
 }
 
+// ── CAJA $ ───────────────────────────────────────────────────────────────
+function calcSaldo(){
+  return caja.reduce((s,m)=> s + (m.tipo==='ingreso' ? Number(m.monto) : -Number(m.monto)), 0);
+}
+
+function renderCaja(){
+  // Set fecha default hoy
+  const fi = document.getElementById('caja-fecha');
+  if(fi && !fi.value) fi.value = new Date().toISOString().slice(0,10);
+
+  // Saldo
+  const saldo = calcSaldo();
+  const cls = saldo>0?'pos':saldo<0?'neg':'cero';
+  const wrap = document.getElementById('caja-saldo-wrap');
+  if(wrap){
+    const totalIng = caja.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+Number(m.monto),0);
+    const totalEgr = caja.filter(m=>m.tipo==='egreso').reduce((s,m)=>s+Number(m.monto),0);
+    wrap.innerHTML = `
+      <div class="caja-saldo">
+        <div>
+          <div class="caja-saldo-label">Saldo disponible</div>
+          <div class="caja-saldo-monto ${cls}">${fmtPesos(saldo)}</div>
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <div style="text-align:right">
+            <div style="font-size:.6em;color:var(--suave);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Ingresos</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.15em;color:var(--verde)">${fmtPesos(totalIng)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.6em;color:var(--suave);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Egresos</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.15em;color:var(--rojo)">${fmtPesos(totalEgr)}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Tabla
+  const tbody = document.getElementById('caja-tbody');
+  if(!tbody) return;
+  if(!caja.length){
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--suave);font-size:.82em;padding:16px 10px;text-align:center">Sin movimientos. Registrá el primero arriba.</td></tr>`;
+    return;
+  }
+  // Ordenar por fecha asc y calcular saldo acumulado
+  const ordenados = [...caja].sort((a,b)=> a.fecha>b.fecha?1:a.fecha<b.fecha?-1: a.id-b.id);
+  let acum = 0;
+  tbody.innerHTML = ordenados.map(m=>{
+    acum += m.tipo==='ingreso' ? Number(m.monto) : -Number(m.monto);
+    const fmtFechaCorta = d => {
+      const [y,mo,di] = d.split('-');
+      return `${di}/${mo}`;
+    };
+    return `<tr>
+      <td style="color:var(--suave);white-space:nowrap">${fmtFechaCorta(m.fecha)}</td>
+      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.descripcion}</td>
+      <td><span class="caja-tipo-${m.tipo==='ingreso'?'ing':'egr'}">${m.tipo==='ingreso'?'Ingreso':'Egreso'}</span></td>
+      <td style="text-align:right"><span class="${m.tipo==='ingreso'?'caja-monto-ing':'caja-monto-egr'}">${m.tipo==='ingreso'?'+':'-'}${fmtPesos(m.monto)}</span></td>
+      <td style="text-align:right;color:${acum>=0?'var(--verde)':'var(--rojo)'};font-weight:600">${fmtPesos(acum)}</td>
+      <td><span class="caja-del" onclick="eliminarMovCaja(${m.id})">✕</span></td>
+    </tr>`;
+  }).join('');
+}
+
+async function agregarMovCaja(){
+  const tipo  = document.getElementById('caja-tipo').value;
+  const fecha = document.getElementById('caja-fecha').value || new Date().toISOString().slice(0,10);
+  const desc  = document.getElementById('caja-desc').value.trim();
+  const monto = parseFloat(document.getElementById('caja-monto').value);
+  if(!desc){ toast('Ingresá una descripción','err'); return; }
+  if(!monto || monto<=0){ toast('Ingresá un monto válido','err'); return; }
+  setSyncing('syncing');
+  try{
+    const {data,error} = await sb.from('caja').insert({tipo,fecha,descripcion:desc,monto}).select().single();
+    if(error) throw error;
+    caja.push(data);
+    // Limpiar form
+    document.getElementById('caja-desc').value='';
+    document.getElementById('caja-monto').value='';
+    document.getElementById('caja-tipo').value='ingreso';
+    toast(tipo==='ingreso'?'Ingreso registrado':'Egreso registrado');
+    setSyncing('ok');
+  }catch(e){ setSyncing('err'); toast('Error: '+e.message,'err'); return; }
+  renderCaja();
+}
+
+async function eliminarMovCaja(id){
+  if(!confirm('¿Eliminar este movimiento?')) return;
+  setSyncing('syncing');
+  try{
+    const {error} = await sb.from('caja').delete().eq('id',id);
+    if(error) throw error;
+    caja = caja.filter(m=>m.id!==id);
+    setSyncing('ok');
+    toast('Movimiento eliminado');
+  }catch(e){ setSyncing('err'); toast('Error: '+e.message,'err'); return; }
+  renderCaja();
+}
+
 // ── BADGE ─────────────────────────────────────────────────────────────────
 function actualizarBadge(){
   const jug=soloJugadores().length;
@@ -1885,11 +2084,13 @@ async function syncDesdeDB(){
     const {data:hData}  = await sb.from('habitaciones').select('*').order('id');
     const {data:ocData} = await sb.from('hab_ocupantes').select('*');
     const {data:iData}  = await sb.from('indumentaria').select('*').order('id');
+    const {data:cajaData} = await sb.from('caja').select('*').order('fecha,id');
     if(!jData) return;
     jugadores    = jData.map(j=>({...j,docs:{dni:j.doc_dni,titulo:j.doc_titulo}}));
     pagos        = pData||[];
     habitaciones = (hData||[]).map(h=>({...h,ocupantes:(ocData||[]).filter(o=>o.habitacion_id===h.id).map(o=>o.jugador_id)}));
     indumentaria = iData||[];
+    if(cajaData) caja = cajaData;
     renderVistasDerivadas();
     setSyncing('ok');
   }catch(e){ setSyncing('err'); }
