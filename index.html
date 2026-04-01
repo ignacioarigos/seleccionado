@@ -563,7 +563,38 @@
 const SUPA_URL = 'https://vfhrpydvlknskmizsfsg.supabase.co';
 const SUPA_KEY = 'sb_publishable_iMfMo1tPhxA1W_BI_ucb2A_fUVtNIVF';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+// Función para ejecutar el inicio de sesión
+async function ejecutarLogin() {
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  const errorP = document.getElementById('login-error');
 
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    errorP.textContent = "Error: " + error.message;
+    errorP.style.display = 'block';
+  } else {
+    document.getElementById('login-overlay').remove();
+    init(); // Llama a tu función que carga los datos
+  }
+}
+
+// Verificar si ya hay una sesión activa al cargar la página
+async function checkSession() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    // Si hay sesión, quitamos el protector y cargamos la app
+    document.getElementById('login-overlay').remove();
+    init(); 
+  } else {
+    // Si no hay sesión, la pantalla de login se queda visible
+    console.log("Esperando inicio de sesión...");
+  }
+}
+
+// Reemplaza tu llamado automático a init() por checkSession()
+window.onload = checkSession;
 // ── DATOS INICIALES ─────────────────────────────────────────────────────
 const INIT = [
   {id:1000,nombre:"Marcos Daniel",    apellido:"Alí",                dni:"27560703",fnac:"1979-06-28",tomo:"95",         folio:"789",titulo:"Abogado",rol:"jugador",transporte:"none",doc_dni:true,doc_titulo:true},
