@@ -897,7 +897,19 @@ function toggleDetalle(idx){
   el.classList.toggle('open');
   btn.textContent=el.classList.contains('open')?'Ocultar':'Ver';
 }
+ async function login(email, password) {
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: email,
+    password: password,
+  });
 
+  if (error) {
+    alert("Error al iniciar sesión: " + error.message);
+  } else {
+    alert("Bienvenido, sesión iniciada");
+    location.reload(); // Recargamos para que el cliente de Supabase reconozca la sesión
+  }
+}
 // ── RENDER JUGADORES ────────────────────────────────────────────────────
 function renderJugadores(){
   const cont=document.getElementById('lista-jugadores');
