@@ -29,32 +29,53 @@ export default function JugadoresPage() {
   }
 
   const guardar = async () => {
-    if (!form.nombre?.trim() || !form.apellido?.trim()) { alert('Nombre y apellido son obligatorios'); return }
-    setSyncState('syncing')
-    try {
-      if (editId !== null) {
-        const { error } = await sb.from('jugadores').update(form).eq('id', editId)
-        if (error) throw error
-        setJugadores(jugadores.map(j => j.id === editId ? { ...j, ...form } as Jugador : j))
-        showToast('Jugador actualizado')
-      } else {
-        const datos = { ...form }
-        delete (datos as any).id
-        const { data: inserted, error } = await sb.from('jugadores').insert(datos).select().single()
-        if (error) throw error
-        const nuevoId = inserted.id
-        await sb.from('pagos').upsert(
-          TIPOS_PAGO.map(t => ({ jugador_id: nuevoId, tipo: t, estado: 'debe' })),
-          { onConflict: 'jugador_id,tipo' }
-        )
-        setJugadores([...jugadores, inserted as Jugador])
-        setPagos([...pagos, ...TIPOS_PAGO.map(t => ({ jugador_id: nuevoId, tipo: t as any, estado: 'debe' as any }))])
-        showToast('Jugador agregado')
+  if (!form.nombre?.trim() || !form.apellido?.trim()) { alert('Nombre y apellido son obligatorios'); return }
+  setSyncState('syncing')
+  try {
+    if (editId !== null) {
+      const datosUpdate: Record<string, any> = {
+        nombre:   form.nombre?.trim() || '',
+        apellido: form.apellido?.trim() || '',
+        dni:      form.dni?.trim() || '',
+        fnac:     form.fnac || null,
+        tomo:     form.tomo?.trim() || '',
+        folio:    form.folio?.trim() || '',
+        titulo:   form.titulo?.trim() || '',
+        rol:      form.rol || 'jugador',
       }
-      setSyncState('ok')
-      setModal(false)
-    } catch (e: any) { setSyncState('err'); showToast('Error: ' + e.message, 'err') }
-  }
+      const { error } = await sb.from('jugadores').update(datosUpdate).eq('id', editId)
+      if (error) throw error
+      setJugadores(jugadores.map(j => j.id === editId ? { ...j, ...datosUpdate } as Jugador : j))
+      showToast('Jugador actualizado')
+    } else {
+      const datos: Record<string, any> = {
+        nombre:     form.nombre?.trim() || '',
+        apellido:   form.apellido?.trim() || '',
+        dni:        form.dni?.trim() || '',
+        fnac:       form.fnac || null,
+        tomo:       form.tomo?.trim() || '',
+        folio:      form.folio?.trim() || '',
+        titulo:     form.titulo?.trim() || '',
+        rol:        form.rol || 'jugador',
+        transporte: 'none',
+        doc_dni:    false,
+        doc_titulo: false,
+      }
+      const { data: inserted, error } = await sb.from('jugadores').insert(datos).select().single()
+      if (error) throw error
+      const nuevoId = inserted.id
+      await sb.from('pagos').upsert(
+        TIPOS_PAGO.map(t => ({ jugador_id: nuevoId, tipo: t, estado: 'debe' })),
+        { onConflict: 'jugador_id,tipo' }
+      )
+      setJugadores([...jugadores, inserted as Jugador])
+      setPagos([...pagos, ...TIPOS_PAGO.map(t => ({ jugador_id: nuevoId, tipo: t as any, estado: 'debe' as any }))])
+      showToast('Jugador agregado')
+    }
+    setSyncState('ok')
+    setModal(false)
+  } catch (e: any) { setSyncState('err'); showToast('Error: ' + e.message, 'err') }
+}
 
   const eliminar = async (j: Jugador) => {
     if (!confirm(`¿Eliminar a ${j.nombre} ${j.apellido}?`)) return
