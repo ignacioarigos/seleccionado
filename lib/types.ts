@@ -18,6 +18,8 @@ export interface Jugador {
   transporte: Transporte
   doc_dni: boolean
   doc_titulo: boolean
+  doc_apto: boolean
+  cargado: boolean
 }
 
 export interface Pago {
