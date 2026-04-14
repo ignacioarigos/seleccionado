@@ -349,7 +349,12 @@ export default function JugadoresPage() {
           {com.map(j => <CardJugador key={j.id} j={j} />)}
         </>
       )}
+    <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
       <button className="btn-add" onClick={() => abrirModal()}>+ Agregar jugador</button>
+      <button className="btn-add" style={{ background: 'var(--azul-oscuro, #1a1a2e)', flex: 'none' }} onClick={() => setPrintModal(true)}>
+      🖨 Imprimir
+      </button>
+    </div>
 
       {/* Modal */}
       {modal && (
