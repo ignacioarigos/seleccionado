@@ -19,7 +19,7 @@ export default function JugadoresPage() {
   const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm]     = useState<Partial<Jugador>>(EMPTY)
   const [open, setOpen]     = useState<number | null>(null)
-  const [printModal, setPrintModal] = useState(false)
+  const [printModal, setPrintModal]     = useState(false)
   const [printFormato, setPrintFormato] = useState<'tabla' | 'lista'>('tabla')
   const [printFiltro, setPrintFiltro]   = useState<'todos' | 'falta' | 'completos'>('falta')
 
@@ -97,7 +97,6 @@ export default function JugadoresPage() {
   }
 
   const toggleDoc = async (j: Jugador, doc: 'dni' | 'titulo' | 'apto') => {
-    // Si está cargado, los badges de docs están bloqueados
     if (j.cargado) return
     const campo = `doc_${doc}` as 'doc_dni' | 'doc_titulo' | 'doc_apto'
     const nuevo = !j[campo]
@@ -122,78 +121,69 @@ export default function JugadoresPage() {
     } catch (e: any) { setSyncState('err'); showToast('Error: ' + e.message, 'err') }
   }
 
-  const CardJugador = ({ j }: { j: Jugador }) => {
-    const isOpen = open === j.id
-    const dOk = j.doc_dni, tOk = j.doc_titulo, aOk = j.doc_apto
-    const bloqueado = j.cargado
-
-    // Estado de inscripción desde pagos (solo lectura)
-    const estInscripcion = paymentState(pagos, j.id, 'inscripcion')
-    const inscripcionPagada = estInscripcion === 'pagado'
-    const inscripcionParcial = estInscripcion === 'parcial'
   const imprimir = () => {
     const lista = soloJugadores(jugadores).filter(j => {
-    const completo = j.doc_dni && j.doc_titulo && j.doc_apto
-    if (printFiltro === 'falta')     return !completo
-    if (printFiltro === 'completos') return completo
-    return true
-  })
+      const completo = j.doc_dni && j.doc_titulo && j.doc_apto
+      if (printFiltro === 'falta')     return !completo
+      if (printFiltro === 'completos') return completo
+      return true
+    })
 
-  if (lista.length === 0) {
-    alert('No hay jugadores que coincidan con el filtro seleccionado.')
-    return
-  }
+    if (lista.length === 0) {
+      alert('No hay jugadores que coincidan con el filtro seleccionado.')
+      return
+    }
 
-  const fechaHoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const fechaHoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
-  const filaTabla = (j: Jugador) => `
-    <tr>
-      <td>${j.apellido}, ${j.nombre}</td>
-      <td class="${j.doc_dni ? 'ok' : 'falta'}">${j.doc_dni ? '✓' : '✗'}</td>
-      <td class="${j.doc_titulo ? 'ok' : 'falta'}">${j.doc_titulo ? '✓' : '✗'}</td>
-      <td class="${j.doc_apto ? 'ok' : 'falta'}">${j.doc_apto ? '✓' : '✗'}</td>
-      <td>${j.cargado ? '✓' : ''}</td>
-    </tr>`
+    const filaTabla = (j: Jugador) => `
+      <tr>
+        <td>${j.apellido}, ${j.nombre}</td>
+        <td class="${j.doc_dni ? 'ok' : 'falta'}">${j.doc_dni ? '✓' : '✗'}</td>
+        <td class="${j.doc_titulo ? 'ok' : 'falta'}">${j.doc_titulo ? '✓' : '✗'}</td>
+        <td class="${j.doc_apto ? 'ok' : 'falta'}">${j.doc_apto ? '✓' : '✗'}</td>
+        <td>${j.cargado ? '✓' : ''}</td>
+      </tr>`
 
-  const filaLista = (j: Jugador) => {
-    const faltantes = [
-      !j.doc_dni    && 'DNI',
-      !j.doc_titulo && 'Título/Matr.',
-      !j.doc_apto   && 'Apto Médico',
-    ].filter(Boolean).join(', ')
-    const presentes = [
-      j.doc_dni    && 'DNI',
-      j.doc_titulo && 'Título/Matr.',
-      j.doc_apto   && 'Apto Médico',
-    ].filter(Boolean).join(', ')
-    return `
-    <div class="lista-item">
-      <div class="lista-nombre">${j.apellido}, ${j.nombre}</div>
-      ${faltantes ? `<div class="lista-falta">✗ Falta: ${faltantes}</div>` : ''}
-      ${presentes ? `<div class="lista-ok">✓ OK: ${presentes}</div>` : ''}
-    </div>`
-  }
+    const filaLista = (j: Jugador) => {
+      const faltantes = [
+        !j.doc_dni    && 'DNI',
+        !j.doc_titulo && 'Título/Matr.',
+        !j.doc_apto   && 'Apto Médico',
+      ].filter(Boolean).join(', ')
+      const presentes = [
+        j.doc_dni    && 'DNI',
+        j.doc_titulo && 'Título/Matr.',
+        j.doc_apto   && 'Apto Médico',
+      ].filter(Boolean).join(', ')
+      return `
+      <div class="lista-item">
+        <div class="lista-nombre">${j.apellido}, ${j.nombre}</div>
+        ${faltantes ? `<div class="lista-falta">✗ Falta: ${faltantes}</div>` : ''}
+        ${presentes ? `<div class="lista-ok">✓ OK: ${presentes}</div>` : ''}
+      </div>`
+    }
 
-  const tituloFiltro =
-    printFiltro === 'falta'     ? 'Documentación pendiente' :
-    printFiltro === 'completos' ? 'Documentación completa'  : 'Todos los jugadores'
+    const tituloFiltro =
+      printFiltro === 'falta'     ? 'Documentación pendiente' :
+      printFiltro === 'completos' ? 'Documentación completa'  : 'Todos los jugadores'
 
-  const contenido = printFormato === 'tabla'
-    ? `<table>
-        <thead>
-          <tr>
-            <th>Jugador</th>
-            <th>DNI</th>
-            <th>Título/Matr.</th>
-            <th>Apto Méd.</th>
-            <th>Cargado</th>
-          </tr>
-        </thead>
-        <tbody>${lista.map(filaTabla).join('')}</tbody>
-       </table>`
-    : lista.map(filaLista).join('')
+    const contenido = printFormato === 'tabla'
+      ? `<table>
+          <thead>
+            <tr>
+              <th>Jugador</th>
+              <th>DNI</th>
+              <th>Título/Matr.</th>
+              <th>Apto Méd.</th>
+              <th>Cargado</th>
+            </tr>
+          </thead>
+          <tbody>${lista.map(filaTabla).join('')}</tbody>
+         </table>`
+      : lista.map(filaLista).join('')
 
-  const html = `<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -210,7 +200,7 @@ export default function JugadoresPage() {
     td.ok    { color: #16a34a; font-weight: 700; text-align: center; }
     td.falta { color: #dc2626; font-weight: 700; text-align: center; }
     th:not(:first-child) { text-align: center; }
-    .lista-item  { padding: 8px 0; border-bottom: 1px solid #e5e5e5; }
+    .lista-item   { padding: 8px 0; border-bottom: 1px solid #e5e5e5; }
     .lista-nombre { font-weight: 700; font-size: 12.5px; margin-bottom: 3px; }
     .lista-falta  { color: #dc2626; font-size: 11px; }
     .lista-ok     { color: #16a34a; font-size: 11px; }
@@ -226,13 +216,22 @@ export default function JugadoresPage() {
 </body>
 </html>`
 
-  const ventana = window.open('', '_blank', 'width=800,height=600')
-  if (ventana) {
-    ventana.document.write(html)
-    ventana.document.close()
+    const ventana = window.open('', '_blank', 'width=800,height=600')
+    if (ventana) {
+      ventana.document.write(html)
+      ventana.document.close()
+    }
+    setPrintModal(false)
   }
-  setPrintModal(false)
-}
+
+  const CardJugador = ({ j }: { j: Jugador }) => {
+    const isOpen = open === j.id
+    const dOk = j.doc_dni, tOk = j.doc_titulo, aOk = j.doc_apto
+    const bloqueado = j.cargado
+
+    const estInscripcion = paymentState(pagos, j.id, 'inscripcion')
+    const inscripcionPagada = estInscripcion === 'pagado'
+    const inscripcionParcial = estInscripcion === 'parcial'
 
     return (
       <div className="card" style={bloqueado ? { opacity: 0.92, borderColor: 'var(--verde)' } : {}}>
@@ -252,7 +251,6 @@ export default function JugadoresPage() {
             <div className="card-sub">
               {j.rol}{j.dni ? ' · ' + j.dni : ''}
             </div>
-            {/* Estado de inscripción — solo lectura */}
             {inscripcionPagada && (
               <div style={{ fontSize: '.65em', color: 'var(--verde)', fontWeight: 600, marginTop: '2px' }}>
                 ✓ Inscripción pagada
@@ -278,7 +276,6 @@ export default function JugadoresPage() {
           </div>
         </div>
 
-        {/* Badges de docs */}
         <div className="doc-badges">
           <span
             className={`doc-badge ${dOk ? 'ok' : 'falta'}`}
@@ -304,8 +301,6 @@ export default function JugadoresPage() {
           >
             {aOk ? '✓' : '✗'} Apto Méd.
           </span>
-
-          {/* Toggle Cargado — siempre editable */}
           <span
             className={`doc-badge ${bloqueado ? 'ok' : 'falta'}`}
             onClick={() => toggleCargado(j)}
@@ -349,14 +344,15 @@ export default function JugadoresPage() {
           {com.map(j => <CardJugador key={j.id} j={j} />)}
         </>
       )}
-    <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-      <button className="btn-add" onClick={() => abrirModal()}>+ Agregar jugador</button>
-      <button className="btn-add" style={{ background: 'var(--azul-oscuro, #1a1a2e)', flex: 'none' }} onClick={() => setPrintModal(true)}>
-      🖨 Imprimir
-      </button>
-    </div>
 
-      {/* Modal */}
+      <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+        <button className="btn-add" onClick={() => abrirModal()}>+ Agregar jugador</button>
+        <button className="btn-add" style={{ background: 'var(--azul-oscuro, #1a1a2e)', flex: 'none' }} onClick={() => setPrintModal(true)}>
+          🖨 Imprimir
+        </button>
+      </div>
+
+      {/* Modal edición */}
       {modal && (
         <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setModal(false) }}>
           <div className="modal">
@@ -397,34 +393,36 @@ export default function JugadoresPage() {
           </div>
         </div>
       )}
+
+      {/* Modal impresión */}
       {printModal && (
-  <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setPrintModal(false) }}>
-    <div className="modal">
-      <div className="modal-title">Opciones de impresión</div>
-      <div className="modal-grid">
-        <div className="modal-field full">
-          <label>Formato</label>
-          <select value={printFormato} onChange={e => setPrintFormato(e.target.value as any)}>
-            <option value="tabla">Tabla (DNI / Título / Apto por columnas)</option>
-            <option value="lista">Lista (qué tiene y qué le falta)</option>
-          </select>
+        <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setPrintModal(false) }}>
+          <div className="modal">
+            <div className="modal-title">Opciones de impresión</div>
+            <div className="modal-grid">
+              <div className="modal-field full">
+                <label>Formato</label>
+                <select value={printFormato} onChange={e => setPrintFormato(e.target.value as any)}>
+                  <option value="tabla">Tabla (DNI / Título / Apto por columnas)</option>
+                  <option value="lista">Lista (qué tiene y qué le falta)</option>
+                </select>
+              </div>
+              <div className="modal-field full">
+                <label>Jugadores a incluir</label>
+                <select value={printFiltro} onChange={e => setPrintFiltro(e.target.value as any)}>
+                  <option value="falta">Solo los que les falta algo</option>
+                  <option value="completos">Solo los que están completos</option>
+                  <option value="todos">Todos los jugadores</option>
+                </select>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-primary" onClick={imprimir}>Imprimir</button>
+              <button className="btn-cancel" onClick={() => setPrintModal(false)}>Cancelar</button>
+            </div>
+          </div>
         </div>
-        <div className="modal-field full">
-          <label>Jugadores a incluir</label>
-          <select value={printFiltro} onChange={e => setPrintFiltro(e.target.value as any)}>
-            <option value="falta">Solo los que les falta algo</option>
-            <option value="completos">Solo los que están completos</option>
-            <option value="todos">Todos los jugadores</option>
-          </select>
-        </div>
-      </div>
-      <div className="modal-actions">
-        <button className="btn-primary" onClick={imprimir}>Imprimir</button>
-        <button className="btn-cancel" onClick={() => setPrintModal(false)}>Cancelar</button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </>
   )
 }
