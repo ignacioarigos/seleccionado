@@ -397,6 +397,34 @@ export default function JugadoresPage() {
           </div>
         </div>
       )}
+      {printModal && (
+  <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setPrintModal(false) }}>
+    <div className="modal">
+      <div className="modal-title">Opciones de impresión</div>
+      <div className="modal-grid">
+        <div className="modal-field full">
+          <label>Formato</label>
+          <select value={printFormato} onChange={e => setPrintFormato(e.target.value as any)}>
+            <option value="tabla">Tabla (DNI / Título / Apto por columnas)</option>
+            <option value="lista">Lista (qué tiene y qué le falta)</option>
+          </select>
+        </div>
+        <div className="modal-field full">
+          <label>Jugadores a incluir</label>
+          <select value={printFiltro} onChange={e => setPrintFiltro(e.target.value as any)}>
+            <option value="falta">Solo los que les falta algo</option>
+            <option value="completos">Solo los que están completos</option>
+            <option value="todos">Todos los jugadores</option>
+          </select>
+        </div>
+      </div>
+      <div className="modal-actions">
+        <button className="btn-primary" onClick={imprimir}>Imprimir</button>
+        <button className="btn-cancel" onClick={() => setPrintModal(false)}>Cancelar</button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   )
 }
