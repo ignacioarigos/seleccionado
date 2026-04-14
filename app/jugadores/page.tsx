@@ -19,6 +19,9 @@ export default function JugadoresPage() {
   const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm]     = useState<Partial<Jugador>>(EMPTY)
   const [open, setOpen]     = useState<number | null>(null)
+  const [printModal, setPrintModal] = useState(false)
+  const [printFormato, setPrintFormato] = useState<'tabla' | 'lista'>('tabla')
+  const [printFiltro, setPrintFiltro]   = useState<'todos' | 'falta' | 'completos'>('falta')
 
   const jugs = soloJugadores(jugadores)
   const com  = soloComitiva(jugadores)
