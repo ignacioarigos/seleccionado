@@ -131,6 +131,108 @@ export default function JugadoresPage() {
     const estInscripcion = paymentState(pagos, j.id, 'inscripcion')
     const inscripcionPagada = estInscripcion === 'pagado'
     const inscripcionParcial = estInscripcion === 'parcial'
+  const imprimir = () => {
+    const lista = soloJugadores(jugadores).filter(j => {
+    const completo = j.doc_dni && j.doc_titulo && j.doc_apto
+    if (printFiltro === 'falta')     return !completo
+    if (printFiltro === 'completos') return completo
+    return true
+  })
+
+  if (lista.length === 0) {
+    alert('No hay jugadores que coincidan con el filtro seleccionado.')
+    return
+  }
+
+  const fechaHoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
+  const filaTabla = (j: Jugador) => `
+    <tr>
+      <td>${j.apellido}, ${j.nombre}</td>
+      <td class="${j.doc_dni ? 'ok' : 'falta'}">${j.doc_dni ? '✓' : '✗'}</td>
+      <td class="${j.doc_titulo ? 'ok' : 'falta'}">${j.doc_titulo ? '✓' : '✗'}</td>
+      <td class="${j.doc_apto ? 'ok' : 'falta'}">${j.doc_apto ? '✓' : '✗'}</td>
+      <td>${j.cargado ? '✓' : ''}</td>
+    </tr>`
+
+  const filaLista = (j: Jugador) => {
+    const faltantes = [
+      !j.doc_dni    && 'DNI',
+      !j.doc_titulo && 'Título/Matr.',
+      !j.doc_apto   && 'Apto Médico',
+    ].filter(Boolean).join(', ')
+    const presentes = [
+      j.doc_dni    && 'DNI',
+      j.doc_titulo && 'Título/Matr.',
+      j.doc_apto   && 'Apto Médico',
+    ].filter(Boolean).join(', ')
+    return `
+    <div class="lista-item">
+      <div class="lista-nombre">${j.apellido}, ${j.nombre}</div>
+      ${faltantes ? `<div class="lista-falta">✗ Falta: ${faltantes}</div>` : ''}
+      ${presentes ? `<div class="lista-ok">✓ OK: ${presentes}</div>` : ''}
+    </div>`
+  }
+
+  const tituloFiltro =
+    printFiltro === 'falta'     ? 'Documentación pendiente' :
+    printFiltro === 'completos' ? 'Documentación completa'  : 'Todos los jugadores'
+
+  const contenido = printFormato === 'tabla'
+    ? `<table>
+        <thead>
+          <tr>
+            <th>Jugador</th>
+            <th>DNI</th>
+            <th>Título/Matr.</th>
+            <th>Apto Méd.</th>
+            <th>Cargado</th>
+          </tr>
+        </thead>
+        <tbody>${lista.map(filaTabla).join('')}</tbody>
+       </table>`
+    : lista.map(filaLista).join('')
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Documentación Jugadores</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 24px; }
+    h1 { font-size: 16px; margin-bottom: 4px; }
+    .subtitulo { font-size: 11px; color: #555; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { background: #1a1a2e; color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; }
+    td { padding: 6px 10px; border-bottom: 1px solid #ddd; font-size: 11.5px; }
+    tr:nth-child(even) td { background: #f7f7f7; }
+    td.ok    { color: #16a34a; font-weight: 700; text-align: center; }
+    td.falta { color: #dc2626; font-weight: 700; text-align: center; }
+    th:not(:first-child) { text-align: center; }
+    .lista-item  { padding: 8px 0; border-bottom: 1px solid #e5e5e5; }
+    .lista-nombre { font-weight: 700; font-size: 12.5px; margin-bottom: 3px; }
+    .lista-falta  { color: #dc2626; font-size: 11px; }
+    .lista-ok     { color: #16a34a; font-size: 11px; }
+    .footer { margin-top: 20px; font-size: 10px; color: #888; text-align: right; }
+  </style>
+</head>
+<body>
+  <h1>Seleccionado — ${tituloFiltro}</h1>
+  <div class="subtitulo">${lista.length} jugador${lista.length !== 1 ? 'es' : ''} · Impreso el ${fechaHoy}</div>
+  ${contenido}
+  <div class="footer">Generado desde la app del Seleccionado</div>
+  <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }<\/script>
+</body>
+</html>`
+
+  const ventana = window.open('', '_blank', 'width=800,height=600')
+  if (ventana) {
+    ventana.document.write(html)
+    ventana.document.close()
+  }
+  setPrintModal(false)
+}
 
     return (
       <div className="card" style={bloqueado ? { opacity: 0.92, borderColor: 'var(--verde)' } : {}}>
